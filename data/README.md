@@ -1,0 +1,1 @@
+This folder will contain the data, like images and videos
