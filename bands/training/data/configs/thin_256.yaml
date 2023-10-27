@@ -1,0 +1,20 @@
+kind: 'mixed'
+
+mask_gen_kwargs:
+  irregular_proba: 1
+  hole_range:
+      - 0.0
+      - 0.7
+  irregular_kwargs:
+    min_times: 4
+    max_times: 50
+    max_width: 10
+    max_angle: 4
+    max_len: 40
+
+  box_proba: 0
+  segm_proba: 0
+  squares_proba: 0
+
+  segm_proba: 0
+  squares_proba: 0

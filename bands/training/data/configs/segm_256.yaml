@@ -1,0 +1,14 @@
+kind: segmentation
+
+mask_gen_kwargs:
+  confidence_threshold: 0.5
+
+max_masks_per_image: 1
+
+cropping:
+  out_min_size: 256
+  handle_small_mode: upscale
+  out_square_crop: True
+  crop_min_overlap: 1
+
+max_tamper_area: 0.5

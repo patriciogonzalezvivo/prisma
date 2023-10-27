@@ -1,0 +1,10 @@
+*.pyc
+*.egg-info
+*.png
+*.jpg
+*.jpeg
+*.mp4
+
+models
+models/*
+data/*
