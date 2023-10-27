@@ -87,28 +87,6 @@ Citation
 ```
 
 
-## Normals
-
-**Code Repo:** [Surface Normal Uncertainty](https://github.com/baegwangbin/surface_normal_uncertainty)
-
-**Use:**
-
-```Shell
-normal.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
-```
-
-Citation:
-
-```
-@InProceedings{Bae2021,
-    title   = {Estimating and Exploiting the Aleatoric Uncertainty in Surface Normal Estimation}
-    author  = {Gwangbin Bae and Ignas Budvytis and Roberto Cipolla},
-    booktitle = {International Conference on Computer Vision (ICCV)},
-    year = {2021}                         
-}
-```
-
-
 ## Segmentation 
 
 **Code Repo:** [MMDetection](https://github.com/open-mmlab/mmdetection)
