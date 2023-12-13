@@ -6,5 +6,4 @@
 *.mp4
 
 models
-models/*
 data/*

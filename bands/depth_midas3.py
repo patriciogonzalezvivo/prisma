@@ -17,6 +17,7 @@ from torchvision.transforms import Compose
 from common.encode import heat_to_rgb
 from common.io import to_float_rgb, write_depth
 
+BAND = "depth_midas3"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL = 'models/dpt_beit_large_512.pt'
 WIDTH = int(1280)
@@ -136,8 +137,8 @@ def process_video(args):
     out_video.close()
 
     output_folder = os.path.dirname(args.output)
-    csv_min = open( os.path.join( output_folder, "depth_v31_min.csv" ) , 'w')
-    csv_max = open( os.path.join( output_folder, "depth_v31_max.csv" ) , 'w')
+    csv_min = open( os.path.join( output_folder, BAND + "_min.csv" ) , 'w')
+    csv_max = open( os.path.join( output_folder, BAND + "_max.csv" ) , 'w')
 
     for e in csv_files:
         csv_min.write( '{}\n'.format(e[0]) )
@@ -147,16 +148,16 @@ def process_video(args):
     csv_max.close()
 
     if data:
-        data["band"]["depth_v31"]["values"] = { 
-                                                "min" : {
-                                                        "type": "float",
-                                                        "url": "depth_v31_min.csv"
-                                                },
-                                                "max" : {
-                                                    "type": "float", 
-                                                    "url": "depth_v31_max.csv",
-                                                }
+        data["band"][BAND]["values"] = { 
+                                            "min" : {
+                                                    "type": "float",
+                                                    "url": BAND + "_min.csv"
+                                            },
+                                            "max" : {
+                                                "type": "float", 
+                                                "url": BAND + "_max.csv",
                                             }
+                                        }
 
 def process_image(args):
     
@@ -172,7 +173,7 @@ def process_image(args):
         depth_min = result.min().item()
         depth_max = result.max().item()
 
-        data["band"]["depth_v31"]["values"] = { 
+        data["band"][BAND]["values"] = { 
                                                 "min" : {
                                                         "value": depth_min, 
                                                         "type": "float"
@@ -230,9 +231,9 @@ if __name__ == "__main__":
         input_extension = "png"
 
     if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, "depth_v31." + input_extension)
+        args.output = os.path.join(args.output, BAND + "." + input_extension)
     elif args.output == "":
-        args.output = os.path.join(input_folder, "depth_v31." + input_extension)
+        args.output = os.path.join(input_folder, BAND + "." + input_extension)
 
     print("output", args.output)
     output_path = args.output
@@ -242,7 +243,7 @@ if __name__ == "__main__":
     output_extension = output_filename.rsplit(".", 1)[1]
 
     if data:
-        data["band"]["depth_v31"] = { "url": output_filename }
+        data["band"][BAND] = { "url": output_filename }
 
     # compute depth maps
     if input_video:

@@ -86,6 +86,30 @@ Citation
 }
 ```
 
+## Depth Estimation (PatchFusion)
+
+**Paper:** [PatchFusion: An End-to-End Tile-Based Framework for High-Resolution Monocular Metric Depth Estimation](https://zhyever.github.io/patchfusion/images/paper.pdf)
+
+**Code Repo:** [zhyever/PatchFusion](https://github.com/zhyever/PatchFusion)
+
+**Use:**
+
+```Shell
+depth_patchfusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+```
+
+
+Citation
+
+```
+@article{li2023patchfusion,
+    title={PatchFusion: An End-to-End Tile-Based Framework for High-Resolution Monocular Metric Depth Estimation}, 
+    author={Zhenyu Li and Shariq Farooq Bhat and Peter Wonka},
+    year={2023},
+    eprint={2312.02284},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}}
+```
 
 ## Segmentation 
 
