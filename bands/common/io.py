@@ -16,12 +16,18 @@ def copy_folder(src, dst):
     os.system(cmd)
     
 
+def open_float_rgb(path):
+    img = cv2.imread(path)
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+    
+
 def to_float_rgb(image):
     img = np.array(image)
     if len(img.shape) == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
-    return img
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
 
 def write_rgba(path, rgba):

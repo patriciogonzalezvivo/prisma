@@ -15,6 +15,7 @@ from torchvision.transforms import Compose
 
 from patchfusion.infer_user import load_ckpt
 from patchfusion.infer_user import regular_tile, random_tile
+from patchfusion.infer_user import colorize_infer
 
 import torch
 import torch.nn.functional as F
@@ -23,14 +24,18 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from common.encode import heat_to_rgb
+from common.io import open_float_rgb
 from common.io import create_folder, write_depth
 
+DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 BAND = "depth_patchfusion"
 MODEL = "models/patchfusion_u4k.pt"
 # MODEL_TYPE = "zoedepth"
 MODEL_TYPE = "zoedepth_custom"
 CONFIG = "bands/patchfusion/zoedepth/models/zoedepth_custom/configs/config_zoedepth_patchfusion.json"
-DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
+RESOLUTION = (2160, 3840)
+CROP = (int(RESOLUTION[0] // 4), int(RESOLUTION[1] // 4))
+
 WIDTH = int(1280)
 HEIGHT = int(720)
 
@@ -48,7 +53,6 @@ def init_model():
 
     overwrite_kwargs = parse_unknown({})
     overwrite_kwargs['model_cfg_path'] = CONFIG
-    overwrite_kwargs["model"] = "zoedepth_custom"
 
     config = get_config_user("zoedepth_custom", **overwrite_kwargs)
     config["pretrained_resource"] = ''
@@ -56,120 +60,111 @@ def init_model():
     model = load_ckpt(model, MODEL)
     model.eval()
     model.cuda()
+    # model.to(device)
     
     return model
 
 
-def infer(img, img_resolution, mode="r128", blr_mask=True, boundary=0, normalize=True):
-    global model, device, transform
+def infer(img, mode="r128", blr_mask=True, boundary=0, normalize=True):
+    global model, transform
 
     if model == None:
         init_model()
 
-    crop_size = (int(img_resolution[0] // 4), int(img_resolution[1] // 4))
+    img_resolution = (img.shape[1], img.shape[0])
+    img_t = F.interpolate(torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode='bicubic', align_corners=True)
+    img_t = img_t.squeeze().permute(1, 2, 0)
 
-    # Load image from dataset
-    img = torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2) # shape: 1, 3, h, w
-    img_lr = transform(img)
+    img_t = torch.tensor(img_t).unsqueeze(dim=0).permute(0, 3, 1, 2) # shape: 1, 3, h, w
+    img_lr = transform(img_t)
 
-    avg_depth_map = regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=0, offset_y=0, img_lr=img_lr)
+    avg_depth_map = regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=0, img_lr=img_lr)
 
     if mode== 'p16':
         pass
     elif mode== 'p49':
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=crop_size[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=0, offset_y=crop_size[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=crop_size[1]//2, offset_y=crop_size[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
     elif mode[0] == 'r':
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=crop_size[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=0, offset_y=crop_size[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, offset_x=crop_size[1]//2, offset_y=crop_size[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
         for i in tqdm(range(int(mode[1:]))):
-            random_tile(model, img, img_resolution, crop_size=crop_size, transform=transform, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+            random_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
-    return avg_depth_map.average_map
+    depth = avg_depth_map.average_map.detach().cpu().numpy()
+    return cv2.resize(depth, img_resolution, interpolation=cv2.INTER_LINEAR)
 
 
-# def process_video(args):
-#     import decord
-#     from common.io import VideoWriter
+def process_video(args):
+    import decord
+    from common.io import VideoWriter
 
-#     # LOAD resource 
-#     in_video = decord.VideoReader(args.input)
-#     width = in_video[0].shape[1]
-#     height = in_video[0].shape[0]
-#     total_frames = len(in_video)
-#     fps = in_video.get_avg_fps()
+    # LOAD resource 
+    in_video = decord.VideoReader(args.input)
+    width = in_video[0].shape[1]
+    height = in_video[0].shape[0]
+    total_frames = len(in_video)
+    fps = in_video.get_avg_fps()
 
-#     width /= 2
-#     height /= 2
+    width /= 2
+    height /= 2
 
-#     output_folder = os.path.dirname(args.output)
-#     output_folder = os.path.join(output_folder, BAND)
-#     create_folder(output_folder)
-#     if data:
-#         data["band"][BAND]["folder"] = BAND
+    output_folder = os.path.dirname(args.output)
+    output_folder = os.path.join(output_folder, BAND)
+    create_folder(output_folder)
+    if data:
+        data["band"][BAND]["folder"] = BAND
 
-#     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
+    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
 
-#     csv_files = []
-#     for i in tqdm( range(total_frames) ):
-#         img = in_video[i].asnumpy() 
-#         prediction = model.infer_pil( img )
-#         depth_min = prediction.min()
-#         depth_max = prediction.max()
-#         depth = (prediction - depth_min) / (depth_max - depth_min)
-#         depth = 1.0-depth.astype(np.float64)
-#         out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
+    csv_files = []
+    for i in tqdm( range(total_frames) ):
+        img = in_video[i].asnumpy() 
+        prediction = infer( img )
+        depth_min = prediction.min()
+        depth_max = prediction.max()
+        depth = (prediction - depth_min) / (depth_max - depth_min)
+        depth = 1.0-depth.astype(np.float64)
+        out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
 
-#         write_depth( os.path.join(output_folder, "{:05d}.png".format(i)), prediction, flip=False, heatmap=True)
+        write_depth( os.path.join(output_folder, "{:05d}.png".format(i)), prediction, flip=False, heatmap=True)
 
-#         csv_files.append( ( depth_min.item(),
-#                             depth_max.item()  ) )
-#     out_video.close()
+        csv_files.append( ( depth_min.item(),
+                            depth_max.item()  ) )
+    out_video.close()
 
-#     output_folder = os.path.dirname(args.output)
-#     csv_min = open( os.path.join( output_folder, "depth_min.csv" ) , 'w')
-#     csv_max = open( os.path.join( output_folder, "depth_max.csv" ) , 'w')
+    output_folder = os.path.dirname(args.output)
+    csv_min = open( os.path.join( output_folder, "depth_min.csv" ) , 'w')
+    csv_max = open( os.path.join( output_folder, "depth_max.csv" ) , 'w')
 
-#     for e in csv_files:
-#         csv_min.write( '{}\n'.format(e[0]) )
-#         csv_max.write( '{}\n'.format(e[1]) )
+    for e in csv_files:
+        csv_min.write( '{}\n'.format(e[0]) )
+        csv_max.write( '{}\n'.format(e[1]) )
 
-#     csv_min.close()
-#     csv_max.close()
+    csv_min.close()
+    csv_max.close()
 
-#     if data:
-#         data["band"][BAND]["values"] = { 
-#                                             "min" : {
-#                                                     "type": "float",
-#                                                     "url": "depth_min.csv"
-#                                             },
-#                                             "max" : {
-#                                                 "type": "float", 
-#                                                 "url": "depth_max.csv",
-#                                             }
-#                                         }
+    if data:
+        data["band"][BAND]["values"] = { 
+                                            "min" : {
+                                                    "type": "float",
+                                                    "url": "depth_min.csv"
+                                            },
+                                            "max" : {
+                                                "type": "float", 
+                                                "url": "depth_max.csv",
+                                            }
+                                        }
 
 
 def process_image(args):
-    # # LOAD resource 
-    # from PIL import Image
-    # in_image = Image.open(args.input).convert("RGB")
-
-    in_image = cv2.imread(args.input)
-    if in_image.ndim == 2:
-        in_image = cv2.cvtColor(in_image, cv2.COLOR_GRAY2BGR)
-    in_image = cv2.cvtColor(in_image, cv2.COLOR_BGR2RGB) / 255.0
-    print(in_image.shape)
-    in_image_resolution = (in_image.shape[0], in_image.shape[1])
-
-    in_image = F.interpolate(torch.tensor(in_image).unsqueeze(dim=0).permute(0, 3, 1, 2), in_image_resolution, mode='bicubic', align_corners=True)
-    in_image = in_image.squeeze().permute(1, 2, 0)
-
-    prediction = infer( in_image, in_image_resolution )
+    # LOAD resource 
+    in_image = open_float_rgb(args.input)
+    prediction = infer( in_image )
 
     if data:
         depth_min = prediction.min().item()

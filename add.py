@@ -111,8 +111,8 @@ if __name__ == '__main__':
         # Depth (ZoeDepth w MiDAS v2.1)
         run("depth_zoedepth", folder_name)
 
-        # Depth (MIDAS v3.1)
-        run("depth_midas3", folder_name)
+        # # Depth (MIDAS v3.1)
+        # run("depth_midas3", folder_name)
 
         # # Mask (mmdet)
         # run("mask_mmdet",  folder_name)

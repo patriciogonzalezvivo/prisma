@@ -279,7 +279,7 @@ class RunningAverageMap:
 
 # default size [540, 960]
 # x_start, y_start = [0, 540, 1080, 1620], [0, 960, 1920, 2880]
-def regular_tile(model, image, img_resolution, transform=None, offset_x=0, offset_y=0, img_lr=None, iter_pred=None, boundary=0, update=False, avg_depth_map=None, blr_mask=False, crop_size=None):
+def regular_tile(model, image, img_resolution, crop_size, transform, offset_x=0, offset_y=0, img_lr=None, iter_pred=None, boundary=0, update=False, avg_depth_map=None, blr_mask=False):
     # crop size
     # height = 540
     # width = 960
@@ -566,10 +566,9 @@ def regular_tile_param(model, image, offset_x=0, offset_y=0, img_lr=None, iter_p
         # avg_depth_map.update(pred_map, count_map)
         return avg_depth_map
 
-def random_tile(model, image, img_resolution, crop_size=None, transform=None, img_lr=None, iter_pred=None, boundary=0, update=False, avg_depth_map=None, blr_mask=False):
+def random_tile(model, image, img_resolution, crop_size, transform, img_lr=None, iter_pred=None, boundary=0, update=False, avg_depth_map=None, blr_mask=False):
     height = crop_size[0]
     width = crop_size[1]
-    
     
     x_start = [random.randint(0, img_resolution[1] - width - 1)]
     y_start = [random.randint(0, img_resolution[0] - height - 1)]
@@ -612,8 +611,6 @@ def random_tile(model, image, img_resolution, crop_size=None, transform=None, im
     crop_areas = transform(crop_areas)
     imgs_crop = transform(imgs_crop)
     
-
-
     imgs_crop = imgs_crop.cuda().float()
     bboxs_roi = bboxs_roi.cuda().float()
     crop_areas = crop_areas.cuda().float()
