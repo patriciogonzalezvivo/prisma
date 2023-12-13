@@ -98,6 +98,8 @@ Citation
 depth_patchfusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
+**Note:** [This pretrained model](https://huggingface.co/zhyever/PatchFusion/resolve/main/patchfusion_u4k.pt?download=true) needs to be downloaded and placed in the `models/` folder.
+
 
 Citation
 

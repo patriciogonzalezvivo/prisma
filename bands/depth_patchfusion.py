@@ -65,14 +65,15 @@ def init_model():
     return model
 
 
-def infer(img, mode="r128", blr_mask=True, boundary=0, normalize=True):
+def infer(img, mode="r128", blr_mask=True, boundary=0, interpolation='bicubic', normalize=True):
     global model, transform
 
     if model == None:
         init_model()
 
+    print(img.shape)
     img_resolution = (img.shape[1], img.shape[0])
-    img_t = F.interpolate(torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode='bicubic', align_corners=True)
+    img_t = F.interpolate(torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode=interpolation, align_corners=True)
     img_t = img_t.squeeze().permute(1, 2, 0)
 
     img_t = torch.tensor(img_t).unsqueeze(dim=0).permute(0, 3, 1, 2) # shape: 1, 3, h, w

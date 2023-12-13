@@ -91,9 +91,12 @@ if __name__ == '__main__':
 
     # 5. Extract bands
     if input_video:
+        # Depth (PatchFusion w ZoeDepth)
+        run("depth_patchfusion", folder_name)
+
         # Depth HUE (ZoeDepth)
         run("depth_zoedepth", folder_name)
-        run("depth_midas3", folder_name)
+        # run("depth_midas3", folder_name)
 
         # Flow (RAFT)
         run("flow_raft", folder_name)

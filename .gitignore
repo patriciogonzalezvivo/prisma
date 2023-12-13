@@ -5,5 +5,5 @@
 *.jpeg
 *.mp4
 
-
+models
 data/*
