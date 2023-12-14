@@ -24,17 +24,15 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from common.encode import heat_to_rgb
-from common.io import open_float_rgb
+from common.io import open_float_rgb, to_float_rgb
 from common.io import create_folder, write_depth
 
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
-BAND = "depth_patchfusion"
+BAND = "depth_fusion"
 MODEL = "models/patchfusion_u4k.pt"
 # MODEL_TYPE = "zoedepth"
 MODEL_TYPE = "zoedepth_custom"
 CONFIG = "bands/patchfusion/zoedepth/models/zoedepth_custom/configs/config_zoedepth_patchfusion.json"
-RESOLUTION = (2160, 3840)
-CROP = (int(RESOLUTION[0] // 4), int(RESOLUTION[1] // 4))
 
 WIDTH = int(1280)
 HEIGHT = int(720)
@@ -65,36 +63,46 @@ def init_model():
     return model
 
 
-def infer(img, mode="r128", blr_mask=True, boundary=0, interpolation='bicubic', normalize=True):
+def infer(img, mode="r128", blr_mask=True, boundary=0, interpolation='bicubic', optimize=True, normalize=True):
     global model, transform
 
     if model == None:
         init_model()
 
-    print(img.shape)
     img_resolution = (img.shape[1], img.shape[0])
+
+    RESOLUTION = (2160, 3840)
+
+    # try to reduce resolution
+    if img.shape[0] <= 480 and img.shape[1] <= 640:
+        RESOLUTION = (480, 640)
+    elif img.shape[0] <= 1080 and img.shape[1] <= 1920:
+        RESOLUTION = (1080, 1920)
+
+    crop = (int(RESOLUTION[0] // 4), int(RESOLUTION[1] // 4))
+
     img_t = F.interpolate(torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode=interpolation, align_corners=True)
     img_t = img_t.squeeze().permute(1, 2, 0)
 
     img_t = torch.tensor(img_t).unsqueeze(dim=0).permute(0, 3, 1, 2) # shape: 1, 3, h, w
     img_lr = transform(img_t)
 
-    avg_depth_map = regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=0, img_lr=img_lr)
+    avg_depth_map = regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=0, offset_y=0, img_lr=img_lr)
 
     if mode== 'p16':
         pass
     elif mode== 'p49':
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=crop[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=0, offset_y=crop[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=crop[1]//2, offset_y=crop[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
     elif mode[0] == 'r':
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=0, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
-        regular_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, offset_x=CROP[1]//2, offset_y=CROP[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=crop[1]//2, offset_y=0, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=0, offset_y=crop[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+        regular_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, offset_x=crop[1]//2, offset_y=crop[0]//2, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
         for i in tqdm(range(int(mode[1:]))):
-            random_tile(model, img_t, RESOLUTION, crop_size=CROP, transform=transform, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
+            random_tile(model, img_t, RESOLUTION, crop_size=crop, transform=transform, img_lr=img_lr, iter_pred=avg_depth_map.average_map, boundary=boundary, update=True, avg_depth_map=avg_depth_map, blr_mask=blr_mask)
 
     depth = avg_depth_map.average_map.detach().cpu().numpy()
     return cv2.resize(depth, img_resolution, interpolation=cv2.INTER_LINEAR)
@@ -124,8 +132,9 @@ def process_video(args):
 
     csv_files = []
     for i in tqdm( range(total_frames) ):
-        img = in_video[i].asnumpy() 
-        prediction = infer( img )
+        img = to_float_rgb( in_video[i].asnumpy() )
+
+        prediction = infer( img, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary)
         depth_min = prediction.min()
         depth_max = prediction.max()
         depth = (prediction - depth_min) / (depth_max - depth_min)
@@ -139,8 +148,8 @@ def process_video(args):
     out_video.close()
 
     output_folder = os.path.dirname(args.output)
-    csv_min = open( os.path.join( output_folder, "depth_min.csv" ) , 'w')
-    csv_max = open( os.path.join( output_folder, "depth_max.csv" ) , 'w')
+    csv_min = open( os.path.join( output_folder, BAND + "_min.csv" ) , 'w')
+    csv_max = open( os.path.join( output_folder, BAND + "_max.csv" ) , 'w')
 
     for e in csv_files:
         csv_min.write( '{}\n'.format(e[0]) )
@@ -153,11 +162,11 @@ def process_video(args):
         data["band"][BAND]["values"] = { 
                                             "min" : {
                                                     "type": "float",
-                                                    "url": "depth_min.csv"
+                                                    "url": BAND + "_min.csv"
                                             },
                                             "max" : {
                                                 "type": "float", 
-                                                "url": "depth_max.csv",
+                                                "url": BAND + "_max.csv",
                                             }
                                         }
 
@@ -165,7 +174,7 @@ def process_video(args):
 def process_image(args):
     # LOAD resource 
     in_image = open_float_rgb(args.input)
-    prediction = infer( in_image )
+    prediction = infer(in_image, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary )
 
     if data:
         depth_min = prediction.min().item()
@@ -190,8 +199,10 @@ if __name__ == "__main__":
 
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-width', help="final max width", type=str, default=WIDTH)
-    parser.add_argument('-height', help="final max height", type=str, default=HEIGHT)
+
+    parser.add_argument('-mode', help="p16, p49, r128", type=str, default="r128")
+    parser.add_argument("-boundary", type=int, default=0)
+    parser.add_argument("-no_blur", action='store_true')
     args = parser.parse_args()
 
     init_model()
@@ -201,8 +212,6 @@ if __name__ == "__main__":
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
             args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
-            global IMG_RESOLUTION
-            IMG_RESOLUTION = (data["height"], data["width"])
         
     input_path = args.input
     input_folder = os.path.dirname(input_path)

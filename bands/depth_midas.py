@@ -17,7 +17,7 @@ from torchvision.transforms import Compose
 from common.encode import heat_to_rgb
 from common.io import to_float_rgb, write_depth
 
-BAND = "depth_midas3"
+BAND = "depth_midas"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL = 'models/dpt_beit_large_512.pt'
 WIDTH = int(1280)

@@ -92,11 +92,13 @@ if __name__ == '__main__':
     # 5. Extract bands
     if input_video:
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_patchfusion", folder_name)
+        run("depth_fusion", folder_name)
 
-        # Depth HUE (ZoeDepth)
-        run("depth_zoedepth", folder_name)
-        # run("depth_midas3", folder_name)
+        # Depth HUE (ZoeDepth w MiDAS v2.1)
+        run("depth_zoe", folder_name)
+
+        # # Depth (MIDAS v3.1)
+        # run("depth_midas", folder_name)
 
         # Flow (RAFT)
         run("flow_raft", folder_name)
@@ -109,13 +111,13 @@ if __name__ == '__main__':
 
     else:
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_patchfusion", folder_name)
+        run("depth_fusion", folder_name)
 
         # Depth (ZoeDepth w MiDAS v2.1)
-        run("depth_zoedepth", folder_name)
+        run("depth_zoe", folder_name)
 
         # # Depth (MIDAS v3.1)
-        # run("depth_midas3", folder_name)
+        # run("depth_midas", folder_name)
 
         # # Mask (mmdet)
         # run("mask_mmdet",  folder_name)
