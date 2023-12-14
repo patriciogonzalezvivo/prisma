@@ -14,6 +14,16 @@ def create_folder(dir):
 def copy_folder(src, dst):
     cmd = "cp -r " + src + " " + dst
     os.system(cmd)
+
+
+def get_image_size(path):
+    img = cv2.imread(path)
+    return img.shape[1], img.shape[0]
+
+def get_video_data(path):
+    import decord
+    video = decord.VideoReader(path)
+    return video[0].shape[1], video[0].shape[0], video.get_avg_fps(), len(video)
     
 
 def open_float_rgb(path):

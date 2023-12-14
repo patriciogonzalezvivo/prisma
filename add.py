@@ -2,6 +2,8 @@ import os
 import json
 import argparse
 
+from bands.common.io import get_image_size, get_video_data
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -72,20 +74,13 @@ if __name__ == '__main__':
             }
         
         if input_video:
-            import decord
-            video = decord.VideoReader(path_rgba)
-            data["width"] = video[0].shape[1]
-            data["height"] = video[0].shape[0]
-            data["fps"] = video.get_avg_fps()
-            data["frames"] = len(video)
+            data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
+
             data["duration"] = float(data["frames"]) / float(data["fps"])
             data["band"]["rgba"]["folder"] = "rgba"
             
         else:
-            import cv2
-            image = cv2.imread(path_rgba)
-            data["width"] = image.shape[1]
-            data["height"] = image.shape[0]
+            data["width"], data["height"] = get_image_size(path_rgba)
 
         payload.write( json.dumps(data, indent=4) )
 

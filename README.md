@@ -3,27 +3,11 @@
 Series of scripts to derive different computer vision tasks from a single image or video.
 
 ```Shell
-python -m pip install -r requirements.txt
+conda env create -f environment.yml
+conda activate prisma
+python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 sh download_models.sh
 ```
-
-
-## Optical Flow (RAFT)
-
-Based on https://github.com/SharifElfouly/opical-flow-estimation-with-RAFT
-
-Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcode.com/sota/optical-flow-estimation-on-sintel-clean)
-
-**Paper:** [RAFT: Recurrent All Pairs Field Transforms for Optical Flow](https://arxiv.org/pdf/2003.12039)
-
-**Code Repo:** [princeton-vl/RAFT](https://github.com/princeton-vl/RAFT)
-
-**Use:**
-
-```Shell
-flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
-```
-
 
 ## Depth estimation (MiDAS 3.1)
 
@@ -95,7 +79,7 @@ Citation
 **Use:**
 
 ```Shell
-depth_patchfusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+depth_fusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 **Note:** [This pretrained model](https://huggingface.co/zhyever/PatchFusion/resolve/main/patchfusion_u4k.pt?download=true) needs to be downloaded and placed in the `models/` folder.
@@ -111,6 +95,22 @@ Citation
     eprint={2312.02284},
     archivePrefix={arXiv},
     primaryClass={cs.CV}}
+```
+
+## Optical Flow (RAFT)
+
+Based on https://github.com/SharifElfouly/opical-flow-estimation-with-RAFT
+
+Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcode.com/sota/optical-flow-estimation-on-sintel-clean)
+
+**Paper:** [RAFT: Recurrent All Pairs Field Transforms for Optical Flow](https://arxiv.org/pdf/2003.12039)
+
+**Code Repo:** [princeton-vl/RAFT](https://github.com/princeton-vl/RAFT)
+
+**Use:**
+
+```Shell
+flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 ## Segmentation 
