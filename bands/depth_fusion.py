@@ -27,8 +27,8 @@ from common.encode import heat_to_rgb
 from common.io import open_float_rgb, to_float_rgb
 from common.io import create_folder, write_depth
 
-DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 BAND = "depth_fusion"
+DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL = "models/patchfusion_u4k.pt"
 # MODEL_TYPE = "zoedepth"
 MODEL_TYPE = "zoedepth_custom"

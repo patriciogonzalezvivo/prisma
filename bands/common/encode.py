@@ -24,6 +24,10 @@ def hue_to_rgb(hue):
 def heat_to_rgb(heat):
     return hue_to_rgb( 1.0 - heat * 0.65 )
 
+def mask_to_rgb(m: np.ndarray ):
+    masks = np.where(m == 1, 255, m)
+    return np.stack([masks] * 3, axis=-1)
+
 
 def encode_polar(a: np.ndarray , rad):
     RGB = np.zeros((a.shape[0], a.shape[1], 3))

@@ -113,29 +113,25 @@ Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcod
 flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
-## Segmentation 
+## Segmentation (Detectron2)
 
-**Code Repo:** [MMDetection](https://github.com/open-mmlab/mmdetection)
+**Code Repo:** [Detectron2](https://github.com/facebookresearch/detectron2)
 
 **Use:**
 
 
 ```Shell
-mask_mmdet.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+mask_densepose.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 Citation:
 ```
-@article{mmdetection,
-    title   = {{MMDetection}: Open MMLab Detection Toolbox and Benchmark},
-    author  = {Chen, Kai and Wang, Jiaqi and Pang, Jiangmiao and Cao, Yuhang and
-              Xiong, Yu and Li, Xiaoxiao and Sun, Shuyang and Feng, Wansen and
-              Liu, Ziwei and Xu, Jiarui and Zhang, Zheng and Cheng, Dazhi and
-              Zhu, Chenchen and Cheng, Tianheng and Zhao, Qijie and Li, Buyu and
-              Lu, Xin and Zhu, Rui and Wu, Yue and Dai, Jifeng and Wang, Jingdong
-              and Shi, Jianping and Ouyang, Wanli and Loy, Chen Change and Lin, Dahua},
-    journal= {arXiv preprint arXiv:1906.07155},
-    year={2019}
+@misc{wu2019detectron2,
+  author =       {Yuxin Wu and Alexander Kirillov and Francisco Massa and
+                  Wan-Yen Lo and Ross Girshick},
+  title =        {Detectron2},
+  howpublished = {\url{https://github.com/facebookresearch/detectron2}},
+  year =         {2019}
 }
 ```
 
