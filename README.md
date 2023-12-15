@@ -1,3 +1,6 @@
+
+![prism](https://github.com/patriciogonzalezvivo/prisma/assets/346914/42b2103b-8357-40c3-b93a-d8961c05e46e)
+
 # PRISMA
 
 Series of scripts to derive different computer vision tasks from a single image or video.
