@@ -129,6 +129,9 @@ if __name__ == '__main__':
         # DensePose (detectron2)
         run("mask_densepose",  folder_name)
 
+        # Pose (mediapipe)
+        run("mask_mediapipe",  folder_name)
+
         # Mask inpainting
         run("inpaint_fcfgan", folder_name)
 

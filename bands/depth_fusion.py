@@ -135,6 +135,11 @@ def process_video(args):
         img = to_float_rgb( in_video[i].asnumpy() )
 
         prediction = infer( img, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary)
+
+        if args.npy:
+            output_folder = os.path.dirname(args.output)
+            np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
+
         depth_min = prediction.min()
         depth_max = prediction.max()
         depth = (prediction - depth_min) / (depth_max - depth_min)
@@ -189,6 +194,10 @@ def process_image(args):
                                                 "type": "float" 
                                             }
                                         }
+        
+    if args.npy 
+        output_folder = os.path.dirname(args.output)
+        np.save( os.path.join(output_folder, BAND + '.npy', prediction)
 
     # Save depth
     write_depth( args.output, prediction, flip=False, heatmap=True)
@@ -199,6 +208,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
+
+    parser.add_argument('-npy' , '-n', help="Keep numpy data", action='store_true')
 
     parser.add_argument('-mode', help="p16, p49, r128", type=str, default="r128")
     parser.add_argument("-boundary", type=int, default=0)
@@ -239,6 +250,9 @@ if __name__ == "__main__":
     output_filename = os.path.basename(output_path)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
+
+    if args.npy and input_video:
+        os.makedirs(os.path.join(output_folder, BAND + "_npy"), exist_ok=True)
 
     if data:
         data["band"][BAND] = { "url": output_filename }
