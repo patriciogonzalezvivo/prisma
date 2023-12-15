@@ -135,16 +135,6 @@ Citation:
 }
 ```
 
-Citation for SOLOv2 model
-```
-@article{wang2020solov2,
-  title={SOLOv2: Dynamic and Fast Instance Segmentation},
-  author={Wang, Xinlong and Zhang, Rufeng and  Kong, Tao and Li, Lei and Shen, Chunhua},
-  journal={Proc. Advances in Neural Information Processing Systems (NeurIPS)},
-  year={2020}
-}
-```
-
 
 ## FcF-Inpainting
 
