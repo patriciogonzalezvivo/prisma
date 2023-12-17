@@ -126,7 +126,7 @@ def process_video(args):
     output_folder = os.path.join(output_folder, BAND)
     create_folder(output_folder)
     if data:
-        data["band"][BAND]["folder"] = BAND
+        data["bands"][BAND]["folder"] = BAND
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
 
@@ -136,9 +136,9 @@ def process_video(args):
 
         prediction = infer( img, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary)
 
-        if args.npy:
-            output_folder = os.path.dirname(args.output)
-            np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
+        # if args.npy:
+        #     output_folder = os.path.dirname(args.output)
+        #     np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
         depth_min = prediction.min()
         depth_max = prediction.max()
@@ -164,7 +164,7 @@ def process_video(args):
     csv_max.close()
 
     if data:
-        data["band"][BAND]["values"] = { 
+        data["bands"][BAND]["values"] = { 
                                             "min" : {
                                                     "type": "float",
                                                     "url": BAND + "_min.csv"
@@ -184,7 +184,7 @@ def process_image(args):
     if data:
         depth_min = prediction.min().item()
         depth_max = prediction.max().item()
-        data["band"][BAND]["values"] = { 
+        data["bands"][BAND]["values"] = { 
                                             "min" : {
                                                     "value": depth_min, 
                                                     "type": "float"
@@ -195,9 +195,9 @@ def process_image(args):
                                             }
                                         }
         
-    if args.npy 
-        output_folder = os.path.dirname(args.output)
-        np.save( os.path.join(output_folder, BAND + '.npy', prediction)
+    # if args.npy:
+    #     output_folder = os.path.dirname(args.output)
+    #     np.save( os.path.join(output_folder, BAND + '.npy', prediction)
 
     # Save depth
     write_depth( args.output, prediction, flip=False, heatmap=True)
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
         
     input_path = args.input
     input_folder = os.path.dirname(input_path)
@@ -255,7 +255,7 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(output_folder, BAND + "_npy"), exist_ok=True)
 
     if data:
-        data["band"][BAND] = { "url": output_filename }
+        data["bands"][BAND] = { "url": output_filename }
 
     # compute depth maps
     if input_video:

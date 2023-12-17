@@ -143,7 +143,7 @@ def main():
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
     input_path = args.input
     input_folder = os.path.dirname(input_path)
@@ -177,9 +177,9 @@ def main():
         process_image(args, data)
 
     if data:
-        data["band"][name] = { }
-        data["band"][name]["url"] = output_filename
-        data["band"][name]["scale"] = int(scale)
+        data["bands"][name] = { }
+        data["bands"][name]["url"] = output_filename
+        data["bands"][name]["scale"] = int(scale)
 
     if data:
         with open( input_payload, 'w') as payload:

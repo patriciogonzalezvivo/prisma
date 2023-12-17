@@ -95,13 +95,13 @@ def runImage(args, data = None):
         
     # Mask
     cv2.imwrite(args.output, (masks * 255).astype(np.uint8))
-    data["band"][BAND] = { }
-    data["band"][BAND]["url"] = output_filename
+    data["bands"][BAND] = { }
+    data["bands"][BAND]["url"] = output_filename
 
     # SDF
     snowy.export(sdf, sdf_path)
-    data["band"][BAND + "_sdf"] = { }
-    data["band"][BAND + "_sdf"]["url"] = sdf_filename
+    data["bands"][BAND + "_sdf"] = { }
+    data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
 def runVideo(args, data = None):
@@ -143,13 +143,13 @@ def runVideo(args, data = None):
 
     # Mask
     mask_video.close()
-    data["band"][BAND] = { }
-    data["band"][BAND]["url"] = output_filename
+    data["bands"][BAND] = { }
+    data["bands"][BAND]["url"] = output_filename
 
     # SDF
     sdf_video.close()
-    data["band"][BAND + "_sdf"] = { }
-    data["band"][BAND + "_sdf"]["url"] = sdf_filename
+    data["bands"][BAND + "_sdf"] = { }
+    data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
 if __name__ == "__main__":
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
     input_path = args.input
     input_folder = os.path.dirname(input_path)

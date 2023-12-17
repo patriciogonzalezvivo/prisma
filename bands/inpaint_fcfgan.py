@@ -117,8 +117,8 @@ def process_image(args):
     cv2.imwrite(args.output, inpainted.astype(np.uint8))
 
     if data:
-        data["band"]["mask_inpaint"] = { }
-        data["band"]["mask_inpaint"]["url"] = output_filename
+        data["bands"]["mask_inpaint"] = { }
+        data["bands"]["mask_inpaint"]["url"] = output_filename
 
 
 def process_video(args):
@@ -154,8 +154,8 @@ def process_video(args):
     inpainted_video.close()
 
     if data:
-        data["band"]["mask_inpaint"] = { }
-        data["band"]["mask_inpaint"]["url"] = output_filename
+        data["bands"]["mask_inpaint"] = { }
+        data["bands"]["mask_inpaint"]["url"] = output_filename
 
 
 if __name__ == "__main__":
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
     input_path = args.input
     input_folder = os.path.dirname(input_path)
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     input_video = input_extension == "mp4"
 
     if args.mask == "":
-        args.mask = os.path.join( input_folder, data["band"]["mask"]["url"] )
+        args.mask = os.path.join( input_folder, data["bands"]["mask"]["url"] )
 
     if not input_video:
         input_extension = "png"

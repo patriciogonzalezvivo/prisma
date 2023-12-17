@@ -68,7 +68,7 @@ if __name__ == '__main__':
     # 4. Create payload
     with open( os.path.join(folder_name, "payload.json"), 'w') as payload:
         data = {
-            "band": {
+            "bands": {
                 "rgba": { 
                     "url": name_rgba,
                 },
@@ -76,14 +76,14 @@ if __name__ == '__main__':
         }
 
         if args.rgbd != "none":
-            data["band"]["depth"] = {
+            data["bands"]["depth"] = {
                 "url": "depth.mp4",
             }
         
         if input_video:
             data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
             data["duration"] = float(data["frames"]) / float(data["fps"])
-            data["band"]["rgba"]["folder"] = "rgba"
+            data["bands"]["rgba"]["folder"] = "rgba"
             
         else:
             data["width"], data["height"] = get_image_size(path_rgba)

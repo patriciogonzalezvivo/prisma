@@ -267,7 +267,7 @@ if __name__ == '__main__':
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
     input_path = args.input
     input_folder = os.path.dirname(input_path)
@@ -283,14 +283,14 @@ if __name__ == '__main__':
     csv_path = os.path.join(args.output, "camera.csv")
 
     if not os.path.exists(args.mask_folder):
-        if "mask" in data["band"]:
-            url = os.path.join( input_folder, data["band"]["mask"]["url"] )
+        if "mask" in data["bands"]:
+            url = os.path.join( input_folder, data["bands"]["mask"]["url"] )
             create_dir(args.mask_folder)
             extract_frames_from_video(url, args.mask_folder, extension="png", invert=True)
 
     if not os.path.exists(args.rgba_folder):
-        if "rgba" in data["band"]:
-            url = os.path.join( input_folder, data["band"]["rgba"]["url"] )
+        if "rgba" in data["bands"]:
+            url = os.path.join( input_folder, data["bands"]["rgba"]["url"] )
             create_dir(args.rgba_folder)
             extract_frames_from_video(url, args.rgba_folder)
         else:

@@ -153,7 +153,7 @@ def run(args):
     csv_dist.close()
 
     if data:
-        data["band"]["flow"] = { 
+        data["bands"]["flow"] = { 
             "url": "flow.mp4",
             "values": {
                 "dist" : {
@@ -164,7 +164,7 @@ def run(args):
         }
 
         if args.backwards:
-            data["band"]["flow_bwd"] = { 
+            data["bands"]["flow_bwd"] = { 
                 "url": "flow_bwd.mp4",
             }
 
@@ -192,7 +192,7 @@ if __name__ == '__main__':
         input_payload = os.path.join( args.input, "payload.json")
         if os.path.isfile(input_payload):
             data = json.load( open(input_payload) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
     input_path = args.input
     input_folder = os.path.dirname(input_path)

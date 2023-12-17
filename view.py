@@ -27,12 +27,12 @@ def calc_focus_point(fov, width):
     return focal_length
 
 def add_values(data, name, values):
-    if "values" in data["band"][name]:
-        for value in data["band"][name]["values"]:
-            if "url" in data["band"][name]["values"][value]:
-                cvs_path = os.path.join(args.input, data["band"][name]["values"][value]["url"])
+    if "values" in data["bands"][name]:
+        for value in data["bands"][name]["values"]:
+            if "url" in data["bands"][name]["values"][value]:
+                cvs_path = os.path.join(args.input, data["bands"][name]["values"][value]["url"])
                 lines = open(cvs_path, "r").readlines()
-                type = data["band"][name]["values"][value]["type"]
+                type = data["bands"][name]["values"][value]["type"]
                 if type == "int":
                     values[value] = [int(line) for line in lines]
                 elif type == "float":
@@ -51,10 +51,10 @@ def add_band(data, name, values, path="bands/textures/"):
     frames = int(data["frames"])
 
     band_video = None
-    if "url" in data["band"][name]:
-        if not data["band"][name]["url"].endswith(".mp4"):
+    if "url" in data["bands"][name]:
+        if not data["bands"][name]["url"].endswith(".mp4"):
             return
-        band_path = os.path.join(args.input, data["band"][name]["url"])
+        band_path = os.path.join(args.input, data["bands"][name]["url"])
         band_video = decord.VideoReader(band_path)
                 
     frame_idx = 0
@@ -91,7 +91,7 @@ def init(data):
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
 
-    rr.log_view_coordinates("band", up="-Y", timeless=True)
+    rr.log_view_coordinates("bands", up="-Y", timeless=True)
             
     sparse_path = os.path.join( args.input, "sparse", "0" )
     if os.path.isdir( sparse_path ):
@@ -156,7 +156,7 @@ def init(data):
     values = {}
 
     # extract values from bands
-    for band in data["band"]:
+    for band in data["bands"]:
         add_values(data, band, values)
 
     print("Found uniforms:", values.keys())
@@ -170,9 +170,9 @@ def init(data):
     v_cen = float(height / 2)
     f_len = float(height * width) ** 0.5
     
-    if "perspective" in data["band"]:
-        if "u_fov" in data["band"]["perspective"]:
-            fov = data["band"]["perspective"]["values"]["u_fov"]["value"]
+    if "perspective" in data["bands"]:
+        if "u_fov" in data["bands"]["perspective"]:
+            fov = data["bands"]["perspective"]["values"]["u_fov"]["value"]
             f_len = calc_focus_point(fov, width, height)
             print("FOV:", fov)
             print("focal length:", f_len)
@@ -204,7 +204,7 @@ def init(data):
         )
 
     # log bands
-    for band in data["band"]:
+    for band in data["bands"]:
         add_band(data, band, values)
         
 if __name__ == '__main__':

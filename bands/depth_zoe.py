@@ -84,7 +84,7 @@ def process_video(args):
     output_folder = os.path.join(output_folder, BAND)
     create_folder(output_folder)
     if data:
-        data["band"][BAND]["folder"] = BAND
+        data["bands"][BAND]["folder"] = BAND
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
 
@@ -116,7 +116,7 @@ def process_video(args):
     csv_max.close()
 
     if data:
-        data["band"][BAND]["values"] = { 
+        data["bands"][BAND]["values"] = { 
                                             "min" : {
                                                     "type": "float",
                                                     "url": BAND + "_min.csv"
@@ -138,7 +138,7 @@ def process_image(args):
     if data:
         depth_min = prediction.min().item()
         depth_max = prediction.max().item()
-        data["band"][BAND]["values"] = { 
+        data["bands"][BAND]["values"] = { 
                                             "min" : {
                                                     "value": depth_min, 
                                                     "type": "float"
@@ -173,7 +173,7 @@ if __name__ == "__main__":
         payload_path = os.path.join( args.input, "payload.json")
         if os.path.isfile(payload_path):
             data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["band"]["rgba"]["url"] )
+            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
         
     input_path = args.input
     input_folder = os.path.dirname(input_path)
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     output_extension = output_filename.rsplit(".", 1)[1]
 
     if data:
-        data["band"][BAND] = { "url": output_filename }
+        data["bands"][BAND] = { "url": output_filename }
 
     # compute depth maps
     if input_video:
