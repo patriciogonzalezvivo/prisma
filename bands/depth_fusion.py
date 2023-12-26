@@ -119,8 +119,8 @@ def process_video(args):
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
 
-    width /= 2
-    height /= 2
+    # width /= 2
+    # height /= 2
 
     output_folder = os.path.dirname(args.output)
     output_folder = os.path.join(output_folder, BAND)
