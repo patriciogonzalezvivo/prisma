@@ -113,7 +113,7 @@ def process_video(args):
         depth_min = prediction.min()
         depth_max = prediction.max()
 
-        depth = (prediction - depth_min) / (depth_max - depth_min)
+        depth = 1.0 - (prediction - depth_min) / (depth_max - depth_min)
 
         out_video.write( ( heat_to_rgb(depth.astype(np.float64)) * 255 ).astype(np.uint8) )
 
