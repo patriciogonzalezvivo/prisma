@@ -34,7 +34,7 @@ from torchvision.transforms import Compose
 from torchvision.transforms import Normalize
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import copy
 from .zoedepth.utils.misc import get_boundaries
 from .zoedepth.utils.misc import compute_metrics, RunningAverageDict

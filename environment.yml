@@ -20,11 +20,14 @@ dependencies:
   - torchvision=0.11.1=py39_cu113
   - json5=0.9.14
   - pip:
+    - accelerate==0.25.0
     - av==11.0.0
     - basicsr==1.4.2
     - click==8.1.7
     - cython==0.29.33
     - decord==0.6.0
+    - diffusers==0.24.0
+    - icecream==2.1.3
     - mediapipe==0.10.9
     - opencv-contrib-python==4.8.1.78
     - opencv-python==4.8.1.78
@@ -33,3 +36,4 @@ dependencies:
     - snowy==0.0.9
     - timm==0.6.12
     - tqdm==4.64.1
+    - transformers==4.36.2

@@ -35,7 +35,7 @@ from diffusers import (
 from diffusers.utils import BaseOutput
 from transformers import CLIPTextModel, CLIPTokenizer
 
-from .util.image_util import chw2hwc, colorize_depth_maps, resize_max_res
+from .util.image_util import resize_max_res
 from .util.batchsize import find_batch_size
 from .util.ensemble import ensemble_depths
 
@@ -47,8 +47,6 @@ class MarigoldDepthOutput(BaseOutput):
     Args:
         depth_np (`np.ndarray`):
             Predicted depth map, with depth values in the range of [0, 1].
-        depth_colored (`PIL.Image.Image`):
-            Colorized depth map, with the shape of [3, H, W] and values in [0, 1].
         uncertainty (`None` or `np.ndarray`):
             Uncalibrated uncertainty(MAD, median absolute deviation) coming from ensembling.
     """

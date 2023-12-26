@@ -117,6 +117,9 @@ if __name__ == '__main__':
         run("camera_colmap", folder_name)
 
     else:
+        # Depth (MariGold)
+        run("depth_marigold", folder_name)
+        
         # Depth (PatchFusion w ZoeDepth)
         run("depth_fusion", folder_name)
 
