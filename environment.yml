@@ -28,6 +28,7 @@ dependencies:
     - decord==0.6.0
     - diffusers==0.24.0
     - icecream==2.1.3
+    - kornia==0.7.0
     - mediapipe==0.10.9
     - opencv-contrib-python==4.8.1.78
     - opencv-python==4.8.1.78
