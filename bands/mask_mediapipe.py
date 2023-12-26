@@ -14,7 +14,6 @@ import numpy as np
 
 import snowy
 
-
 BAND = "mask_mediapipe"
 
 model = None

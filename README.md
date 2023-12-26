@@ -8,8 +8,16 @@ Series of scripts to derive different computer vision tasks from a single image 
 ```Shell
 conda env create -f environment.yml
 conda activate prisma
-python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 sh download_models.sh
+
+# Install Detectron2
+python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+
+# Install mmcv (for mmdetection)
+pip install -U openmim
+mim install mmengine
+mim install "mmcv-full==1.7.1"
+# pip install "mmsegmentation==0.30.0"
 ```
 
 ## Depth estimation (MiDAS 3.1)
@@ -161,6 +169,32 @@ Citation:
   title =        {Detectron2},
   howpublished = {\url{https://github.com/facebookresearch/detectron2}},
   year =         {2019}
+}
+```
+
+## Segmentation (MMDetection)
+
+**Code Repo:** [MMDetection](https://github.com/open-mmlab/mmdetection)
+
+**Use:**
+
+
+```Shell
+mask_mmdet.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+```
+
+Citation:
+```
+@article{mmdetection,
+    title   = {{MMDetection}: Open MMLab Detection Toolbox and Benchmark},
+    author  = {Chen, Kai and Wang, Jiaqi and Pang, Jiangmiao and Cao, Yuhang and
+              Xiong, Yu and Li, Xiaoxiao and Sun, Shuyang and Feng, Wansen and
+              Liu, Ziwei and Xu, Jiarui and Zhang, Zheng and Cheng, Dazhi and
+              Zhu, Chenchen and Cheng, Tianheng and Zhao, Qijie and Li, Buyu and
+              Lu, Xin and Zhu, Rui and Wu, Yue and Dai, Jifeng and Wang, Jingdong
+              and Shi, Jianping and Ouyang, Wanli and Loy, Chen Change and Lin, Dahua},
+    journal= {arXiv preprint arXiv:1906.07155},
+    year={2019}
 }
 ```
 

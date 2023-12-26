@@ -108,7 +108,10 @@ if __name__ == '__main__':
         run("flow_raft", folder_name)
 
         # Mask (detectron2)
-        run("mask",  folder_name)
+        run("mask_detectron2",  folder_name, extra_args="-seg")
+
+        # Mask (mmdet)
+        run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
 
         # DensePose (detectron2)
         run("mask_densepose",  folder_name)
@@ -130,13 +133,16 @@ if __name__ == '__main__':
         # run("depth_midas", folder_name)
 
         # Mask (detectron2)
-        run("mask",  folder_name)
+        run("mask_detectron2",  folder_name, extra_args="-seg")
+
+        # Mask (mmdet)
+        run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
 
         # DensePose (detectron2)
         run("mask_densepose",  folder_name)
 
-        # Pose (mediapipe)
-        run("mask_mediapipe",  folder_name)
+        # # Pose (mediapipe)
+        # run("mask_mediapipe",  folder_name)
 
         # Mask inpainting
         run("inpaint_fcfgan", folder_name)

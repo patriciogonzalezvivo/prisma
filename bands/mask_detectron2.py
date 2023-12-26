@@ -7,7 +7,6 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
-
 import cv2
 
 import torch
@@ -112,20 +111,23 @@ def runImage(args, data = None):
     masks, seg, sdf = infer(img)
         
     # Mask
-    cv2.imwrite(args.output, masks.astype(np.uint8))
-    data["bands"][BAND] = { }
-    data["bands"][BAND]["url"] = output_filename
+    if args.mask:
+        cv2.imwrite(args.output, masks.astype(np.uint8))
+        data["bands"][BAND] = { }
+        data["bands"][BAND]["url"] = output_filename
 
     # Seg
-    cv2.imwrite(seg_path, seg.astype(np.uint8))
-    data["bands"][BAND + "_sdf"] = { }
-    data["bands"][BAND + "_sdf"]["url"] = sdf_filename
-    data["bands"][BAND + "_sdf"]["ids"] = COCO
+    if args.seg:
+        cv2.imwrite(seg_path, seg.astype(np.uint8))
+        data["bands"][BAND + "_seg"] = { }
+        data["bands"][BAND + "_seg"]["url"] = sdf_filename
+        data["bands"][BAND + "_seg"]["ids"] = COCO
 
     # SDF
-    snowy.export(sdf, sdf_path)
-    data["bands"][BAND + "_sdf"] = { }
-    data["bands"][BAND + "_sdf"]["url"] = sdf_filename
+    if args.sdf:
+        snowy.export(sdf, sdf_path)
+        data["bands"][BAND + "_sdf"] = { }
+        data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
 def runVideo(args, data = None):
@@ -148,44 +150,54 @@ def runVideo(args, data = None):
     output_filename = os.path.basename(output_path)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
-    mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
 
-    sdf_filename = output_basename + "_sdf." + output_extension
-    sdf_path = output_folder + "/" + sdf_filename
-    sdf_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=sdf_path )
+    if args.mask:
+        mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
 
-    seg_filename = output_basename + "_seg." + output_extension
-    seg_path = output_folder + "/" + seg_filename
-    seg_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=seg_path )
+    if args.sdf:
+        sdf_filename = output_basename + "_sdf." + output_extension
+        sdf_path = output_folder + "/" + sdf_filename
+        sdf_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=sdf_path )
+
+    if args.seg:
+        seg_filename = output_basename + "_seg." + output_extension
+        seg_path = output_folder + "/" + seg_filename
+        seg_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=seg_path )
 
     for f in tqdm( range(total_frames) ):
         img = cv2.cvtColor(in_video[f].asnumpy(), cv2.COLOR_BGR2RGB)
 
         masks, seg, sdf = infer(img)
 
-        mask_video.write( masks.astype(np.uint8) )
+        if args.mask:
+            mask_video.write( masks.astype(np.uint8) )
 
-        seg_video.write( seg.astype(np.uint8) )
+        if args.seg:
+            seg_video.write( seg.astype(np.uint8) )
 
-        sdf = np.uint8(np.clip(sdf * 255, 0, 255))
-        sdf = cv2.merge((sdf,sdf,sdf))
-        sdf_video.write( sdf )
+        if args.sdf:
+            sdf = np.uint8(np.clip(sdf * 255, 0, 255))
+            sdf = cv2.merge((sdf,sdf,sdf))
+            sdf_video.write( sdf )
 
     # Mask
-    mask_video.close()
-    data["bands"][BAND] = { }
-    data["bands"][BAND]["url"] = output_filename
+    if args.mask:
+        mask_video.close()
+        data["bands"][BAND] = { }
+        data["bands"][BAND]["url"] = output_filename
 
     # SEG
-    seg_video.close()
-    data["bands"][BAND + "_seg"] = { }
-    data["bands"][BAND + "_seg"]["url"] = seg_filename
-    data["bands"][BAND + "_seg"]["ids"] = COCO
+    if args.seg:
+        seg_video.close()
+        data["bands"][BAND + "_seg"] = { }
+        data["bands"][BAND + "_seg"]["url"] = seg_filename
+        data["bands"][BAND + "_seg"]["ids"] = COCO
 
     # SDF
-    sdf_video.close()
-    data["bands"][BAND + "_sdf"] = { }
-    data["bands"][BAND + "_sdf"]["url"] = sdf_filename
+    if args.sdf:
+        sdf_video.close()
+        data["bands"][BAND + "_sdf"] = { }
+        data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
 if __name__ == "__main__":
@@ -193,6 +205,11 @@ if __name__ == "__main__":
 
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
+
+    parser.add_argument("-sdf", action='store_true')
+    parser.add_argument("-seg", action='store_true')
+    parser.add_argument("-mask", action='store_true')
+
 
     args = parser.parse_args()
 
