@@ -92,6 +92,9 @@ if __name__ == '__main__':
 
     # 5. Extract bands
     if input_video:
+        # Depth (MariGold)
+        run("depth_marigold", folder_name)
+
         # Depth (PatchFusion w ZoeDepth)
         run("depth_fusion", folder_name, extra_args="-mode=p49")
 

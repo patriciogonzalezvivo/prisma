@@ -100,6 +100,32 @@ Citation
     primaryClass={cs.CV}}
 ```
 
+## Depth Estimation (Marigold)
+
+**Paper:** ![Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
+
+**Code Repo:** [prs-eth/Marigold](https://github.com/prs-eth/Marigold)
+
+**Use:**
+
+```Shell
+depth_marigold.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+```
+
+Citation
+
+```bibtex
+@misc{ke2023repurposing,
+      title={Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation}, 
+      author={Bingxin Ke and Anton Obukhov and Shengyu Huang and Nando Metzger and Rodrigo Caye Daudt and Konrad Schindler},
+      year={2023},
+      eprint={2312.02145},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
+
+
 ## Optical Flow (RAFT)
 
 Based on https://github.com/SharifElfouly/opical-flow-estimation-with-RAFT
