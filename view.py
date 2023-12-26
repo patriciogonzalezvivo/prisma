@@ -15,7 +15,6 @@ import decord
 from tqdm import tqdm
 from bands.common.colmap import read_model
 
-
 DEPTH_IMAGE_SCALING: Final = 1e4
 
 skip = ["rgba_scaled", "perspective_ori", "perspective_lat"]
