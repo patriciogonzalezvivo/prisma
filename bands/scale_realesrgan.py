@@ -12,8 +12,7 @@ from basicsr.utils.download_util import load_file_from_url
 from realesrgan import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
-# import time
-
+BAND = "scaled"
 model = None
 scale = 4
 window_size = 8
@@ -156,7 +155,7 @@ def main():
     if not input_video:
         input_extension = "jpg"
 
-    name = input_basename + "_scaled"
+    name = input_basename + "_" + BAND + "x" + str(int(args.scale))
     output_filename = name + "." + input_extension
 
 
