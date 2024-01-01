@@ -104,6 +104,37 @@ def infer(img, optimize=True, normalize=True):
     return prediction
 
 
+def process_image(args):
+    
+    # LOAD resource 
+    from PIL import Image
+    in_image = Image.open(args.input).convert("RGB")
+    print("Original size:", in_image.width, in_image.height)
+
+    img = to_float_rgb( in_image )
+    result = infer(img, optimize=args.optimize, normalize=False)
+
+    if data:
+        depth_min = result.min().item()
+        depth_max = result.max().item()
+
+        data["bands"][BAND]["values"] = { 
+                                                "min" : {
+                                                        "value": depth_min, 
+                                                        "type": "float"
+                                                },
+                                                "max" : {
+                                                    "value": depth_max,
+                                                    "type": "float" }
+                                            }
+
+    result = result.cpu().numpy()
+        
+    # Save depth
+    write_depth( args.output, result, heatmap=True)
+
+
+
 def process_video(args):
     import decord
     from tqdm import tqdm
@@ -168,34 +199,6 @@ def process_video(args):
                                             }
                                         }
 
-def process_image(args):
-    
-    # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
-    print("Original size:", in_image.width, in_image.height)
-
-    img = to_float_rgb( in_image )
-    result = infer(img, args.optimize, False)
-
-    if data:
-        depth_min = result.min().item()
-        depth_max = result.max().item()
-
-        data["bands"][BAND]["values"] = { 
-                                                "min" : {
-                                                        "value": depth_min, 
-                                                        "type": "float"
-                                                },
-                                                "max" : {
-                                                    "value": depth_max,
-                                                    "type": "float" }
-                                            }
-
-    result = result.cpu().numpy()
-        
-    # Save depth
-    write_depth( args.output, result, heatmap=True)
 
 
 if __name__ == "__main__":
