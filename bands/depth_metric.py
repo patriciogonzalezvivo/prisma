@@ -413,6 +413,6 @@ if __name__ == '__main__':
     else:
         process_image(args)
 
-    # if data:
-    #     with open( input_payload, 'w') as payload:
-    #         payload.write( json.dumps(data, indent=4) )
+    if data:
+        with open( input_payload, 'w') as payload:
+            payload.write( json.dumps(data, indent=4) )
