@@ -1,14 +1,15 @@
 import os
 import cv2
 import sys
-import json
+import argparse
+
+import warnings
+warnings.filterwarnings("ignore")
 
 CODE_SPACE=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(CODE_SPACE)
 
-import argparse
 import torch
-
 try:
     from mmcv.utils import Config, DictAction
 except:
