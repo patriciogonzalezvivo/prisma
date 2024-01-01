@@ -13,12 +13,15 @@ from realesrgan import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
 from common.io import check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 
 BAND = "scaled"
 model = None
 scale = 4
 window_size = 8
 file_url = None
+data = None
+
 
 def init_model(name):
     global model, device, scale, file_url
@@ -121,8 +124,7 @@ def process_video(args, data = None):
     scaled_video.close()
 
 
-def main():
-    global scale
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input',  help="input image", type=str, required=True)
     parser.add_argument('-o', '--output', help="output", type=str, default="")
@@ -135,26 +137,24 @@ def main():
     parser.add_argument('--pre_pad', type=int, default=0, help='Pre padding size at each border')
     args = parser.parse_args()
 
-    data = None
     args.model_name = args.model_name.split('.')[0]
     if args.scale == 2:
         args.model_name = "RealESRGAN_x2plus"
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
+    # Try to load metadata
+    data = load_metadata(args.input)
+    if data:
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output)
 
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join( input_folder, "payload.json")
-    input_filename = os.path.basename(input_path)
+    input_folder = os.path.dirname(args.input)
+    input_filename = os.path.basename(args.input)
     input_basename = input_filename.rsplit(".", 1)[0]
     input_extension = input_filename.rsplit(".", 1)[1]
-    input_video = input_extension == "mp4"
 
-    if not input_video:
+    if not is_video(args.input):
         input_extension = "jpg"
 
     name = input_basename + "_" + BAND + "x" + str(int(args.scale))
@@ -167,13 +167,10 @@ def main():
 
     check_overwrite(args.output)
 
-    if os.path.isfile(input_payload):  
-        if not data:
-            data = json.load( open(input_payload) )
-
+    # init model
     init_model(args.model_name)
 
-    if input_video:
+    if is_video(args.output):
         process_video(args, data)
     else:
         process_image(args, data)
@@ -183,11 +180,7 @@ def main():
         data["bands"][name]["url"] = output_filename
         data["bands"][name]["scale"] = int(scale)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)
     
-
-
-if __name__ == '__main__':
-    main()

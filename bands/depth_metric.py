@@ -21,8 +21,9 @@ from metric3d.utils.mldb import load_data_info, reset_ckpt_path
 from metric3d.utils.visualization import save_val_imgs
 from metric3d.utils.unproj_pcd import reconstruct_pcd, save_point_cloud
 
+from common.io import check_overwrite, create_folder, write_depth
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
-from common.io import check_overwrite, create_folder, to_float_rgb, write_depth
 
 BAND = "depth_metric"
 MODEL="models/convlarge_hourglass_0.3_150_step750k_v1.1.pth"
@@ -368,51 +369,26 @@ if __name__ == '__main__':
     parser.add_argument('--test_data_path', default='None', type=str, help='the path of test data')
     args = parser.parse_args()
 
-    args = parser.parse_args()
-
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
-        
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join(input_folder, "payload.json")
-    if os.path.isfile(input_payload):
-        data = json.load( open(input_payload) )
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
-    input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
-
-    if not input_video:
-        input_extension = "png"
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, BAND + "." + input_extension)
-    elif args.output == "":
-        args.output = os.path.join(input_folder, BAND + "." + input_extension)
-
-    output_path = args.output
-    output_folder = os.path.dirname(output_path)
-    output_filename = os.path.basename(output_path)
-    output_basename = output_filename.rsplit(".", 1)[0]
-    output_extension = output_filename.rsplit(".", 1)[1]
-
-    check_overwrite(output_path)
-
+    # Try to load metadata
+    data = load_metadata(args.input)
     if data:
-        data["bands"][BAND] = { "url": output_filename }
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
 
+    # Check if the output folder exists
+    check_overwrite(args.output)
+
+    # Init model
     init_model(args.options)
 
     # compute depth maps
-    if input_video:
+    if is_video(args.input):
         process_video(args)
     else:
         process_image(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)

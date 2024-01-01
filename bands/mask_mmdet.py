@@ -14,8 +14,10 @@ import cv2
 from mmdet.apis import init_detector, inference_detector
 
 import snowy
-from common.encode import hue_to_rgb
+
 from common.io import create_folder, check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.encode import hue_to_rgb
 
 BAND = "mask"
 
@@ -54,7 +56,7 @@ def getMaskRGB(result, category, index):
     return np.stack([masks] * 3, axis=-1)
 
 
-def runVideo(args, data = None):
+def runVideo(args):
     global model, device
 
     import decord
@@ -76,18 +78,14 @@ def runVideo(args, data = None):
     output_filename = os.path.basename(output_path)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
+        
+    mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
 
     if args.mask_subpath != '':
-        args.mask = True
-
-    if args.mask:
-        mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
-
-        if args.mask_subpath != '':
-            if data:
-                data["bands"][BAND]["folder"] = args.mask_subpath
-            args.mask_subpath = os.path.join(output_folder, args.mask_subpath)
-            create_folder(args.mask_subpath)
+        if data:
+            data["bands"][BAND]["folder"] = args.mask_subpath
+        args.mask_subpath = os.path.join(output_folder, args.mask_subpath)
+        create_folder(args.mask_subpath)
 
     if args.sdf_subpath != '':
         args.sdf = True
@@ -117,11 +115,10 @@ def runVideo(args, data = None):
                 if category in CLASSES:
                     masks = masks + mask
 
-        if args.mask:
-            mask_video.write( masks.astype(np.uint8) )
+        mask_video.write( masks.astype(np.uint8) )
 
-            if args.mask_subpath != '':
-                cv2.imwrite(os.path.join(args.mask_subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
+        if args.mask_subpath != '':
+            cv2.imwrite(os.path.join(args.mask_subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
 
         if args.sdf:
             masks = snowy.rgb_to_luminance( snowy.extract_rgb(masks) )
@@ -136,11 +133,10 @@ def runVideo(args, data = None):
                 cv2.imwrite(os.path.join(args.sdf_subpath, "{:05d}.png".format(f)), sdf.astype(np.uint8))
 
     # Mask
-    if args.mask:
-        mask_video.close()
-        data["bands"][BAND] = { }
-        data["bands"][BAND]["url"] = output_filename
-        data["bands"][BAND]["ids"] = CLASSES
+    mask_video.close()
+    data["bands"][BAND] = { }
+    data["bands"][BAND]["url"] = output_filename
+    data["bands"][BAND]["ids"] = CLASSES
 
     # SDF
     if args.sdf:
@@ -149,13 +145,12 @@ def runVideo(args, data = None):
         data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
-def runImage(args, data = None):
+def runImage(args):
     global model, device
 
     # Export properties
-    output_path = args.output
-    output_folder = os.path.dirname(output_path)
-    output_filename = os.path.basename(output_path)
+    output_folder = os.path.dirname(args.output)
+    output_filename = os.path.basename(args.output)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
 
@@ -179,11 +174,10 @@ def runImage(args, data = None):
                 masks = masks + mask
         
     # Mask
-    if args.mask:
-        cv2.imwrite(args.output, masks.astype(np.uint8))
-        data["bands"][BAND] = { }
-        data["bands"][BAND]["url"] = output_filename
-        data["bands"][BAND]["ids"] = CLASSES
+    cv2.imwrite(args.output, masks.astype(np.uint8))
+    data["bands"][BAND] = { }
+    data["bands"][BAND]["url"] = output_filename
+    data["bands"][BAND]["ids"] = CLASSES
 
     # SDF
     if args.sdf:
@@ -202,7 +196,6 @@ if __name__ == "__main__":
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
 
-    parser.add_argument("-mask", action='store_true')
     parser.add_argument("-sdf", action='store_true')
 
     parser.add_argument('-mask_subpath', '-md', help="Mask Subpath to frames", type=str, default='')
@@ -210,42 +203,26 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
+    # Try to load metadata
+    data = load_metadata(args.input)
+    if data:
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
 
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join( input_folder, "payload.json")
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit(".", 1)[0]
-    input_extension = input_filename.rsplit(".", 1)[1]
-    input_video = input_extension == "mp4"
-
-    if not input_video:
-        input_extension = "png"
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, BAND + "." + input_extension)
-    elif args.output == "":
-        args.output = os.path.join(input_folder, BAND + "." + input_extension)
-        
+    # Check if the output folder exists
     check_overwrite(args.output)
 
+    # Load model
     init_model()
 
-    if os.path.isfile(input_payload):
-        if not data:
-            data = json.load( open(input_payload) )
-
     # compute depth maps
-    if input_video:
-        runVideo(args, data)
+    if is_video(args.output):
+        runVideo(args)
     else:
-        runImage(args, data)
+        runImage(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)
