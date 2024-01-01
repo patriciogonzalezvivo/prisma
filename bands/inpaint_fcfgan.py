@@ -14,9 +14,11 @@ from PIL import Image
 import legacy
 
 from common.io import check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL  = 'models/places_512.pkl'
+BAND = "mask_inpaint"
 # MODEL  = 'models/places.pkl'
 
 device = None
@@ -170,45 +172,29 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
+    # Try to load metadata
+    data = load_metadata(args.input)
+    if data:
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
 
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join( input_folder, "payload.json")
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit(".", 1)[0]
-    input_extension = input_filename.rsplit(".", 1)[1]
-    input_video = input_extension == "mp4"
+        input_folder = os.path.dirname(args.input)
+        if args.mask == "":
+            args.mask = os.path.join(input_folder, data["bands"]["mask"]["url"] )
 
-    if args.mask == "":
-        args.mask = os.path.join( input_folder, data["bands"]["mask"]["url"] )
-
-    if not input_video:
-        input_extension = "png"
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, "mask_inpaint." + input_extension)
-    elif args.output == "":
-        args.output = os.path.join(input_folder, "mask_inpaint." + input_extension)
-
+    # Check if the output folder exists
     check_overwrite(args.output)
 
-    if os.path.isfile(input_payload):
-        if not data:
-            data = json.load( open(input_payload) )
-
-    if not input_video:
-        process_image(args)
-    else:
+    if is_video(args.input):
         process_video(args)
+    else:
+        process_image(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)
 
 
 

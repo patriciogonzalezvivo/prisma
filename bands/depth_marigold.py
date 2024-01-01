@@ -9,10 +9,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from marigold import MarigoldPipeline
-from marigold.util.seed_all import seed_all
 
-from common.encode import heat_to_rgb
 from common.io import create_folder, write_depth, check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.encode import heat_to_rgb
 
 BAND = "depth_marigold"
 CHECKPOINT = "Bingxin/Marigold"
@@ -86,6 +86,31 @@ def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, proc
     return prediction
 
 
+def process_image(args):
+    img = Image.open(args.input).convert("RGB")
+    prediction = infer(img, normalize=False)
+
+    if data:
+        depth_min = prediction.min().item()
+        depth_max = prediction.max().item()
+
+        data["bands"][BAND]["values"] = { 
+                                                "min" : {
+                                                        "value": depth_min, 
+                                                        "type": "float"
+                                                },
+                                                "max" : {
+                                                    "value": depth_max,
+                                                    "type": "float" }
+                                            }
+    if args.npy:
+        output_folder = os.path.dirname(args.output)
+        np.save( os.path.join(output_folder, BAND + '.npy', prediction) )
+
+    # Save depth
+    write_depth( args.output, prediction, flip=False, heatmap=True)
+
+
 def process_video(args):
     import decord
     from tqdm import tqdm
@@ -117,7 +142,6 @@ def process_video(args):
             if args.subpath != '':
                 np.save( os.path.join(args.subpath, "{:05d}.npy".format(i)), prediction)
             else:
-                output_folder = os.path.dirname(args.output)
                 np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
         depth_min = prediction.min()
@@ -133,7 +157,6 @@ def process_video(args):
 
     out_video.close()
 
-    output_folder = os.path.dirname(args.output)
     csv_min = open( os.path.join( output_folder, BAND + "_min.csv" ) , 'w')
     csv_max = open( os.path.join( output_folder, BAND + "_max.csv" ) , 'w')
 
@@ -156,30 +179,6 @@ def process_video(args):
                                             }
                                         }
 
-def process_image(args):
-    img = Image.open(args.input).convert("RGB")
-    prediction = infer(img, normalize=False)
-
-    if data:
-        depth_min = prediction.min().item()
-        depth_max = prediction.max().item()
-
-        data["bands"][BAND]["values"] = { 
-                                                "min" : {
-                                                        "value": depth_min, 
-                                                        "type": "float"
-                                                },
-                                                "max" : {
-                                                    "value": depth_max,
-                                                    "type": "float" }
-                                            }
-    if args.npy:
-        output_folder = os.path.dirname(args.output)
-        np.save( os.path.join(output_folder, BAND + '.npy', prediction) )
-
-    # Save depth
-    write_depth( args.output, prediction, flip=False, heatmap=True)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -191,52 +190,28 @@ if __name__ == "__main__":
     parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
     args = parser.parse_args()
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
-        
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join(input_folder, "payload.json")
-    if os.path.isfile(input_payload):
-        data = json.load( open(input_payload) )
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
-    input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
-
-    if not input_video:
-        input_extension = "png"
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, BAND + "." + input_extension)
-    elif args.output == "":
-        args.output = os.path.join(input_folder, BAND + "." + input_extension)
-
-    output_path = args.output
-    output_folder = os.path.dirname(output_path)
-    output_filename = os.path.basename(output_path)
-    output_basename = output_filename.rsplit(".", 1)[0]
-    output_extension = output_filename.rsplit(".", 1)[1]
-
-    check_overwrite(output_path)
-
-    if args.npy and input_video:
-        os.makedirs(os.path.join(output_folder, BAND + "_npy"), exist_ok=True)
-
+    # Try to load metadata
+    data = load_metadata(args.input)
     if data:
-        data["bands"][BAND] = { "url": output_filename }
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
+
+    # Check if the output folder exists
+    check_overwrite(args.output)
+
+    if args.npy and is_video(args.output):
+        os.makedirs(os.path.join(os.path.dirname(args.output), BAND + "_npy"), exist_ok=True)
 
     # compute depth maps
     init_model(checkpoint=args.checkpoint) 
     
-    if input_video:
+    if is_video(args.output):
         process_video(args)
     else:
         process_image(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)

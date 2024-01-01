@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import cv2
-import json
 import argparse
 import os
 
@@ -14,8 +13,9 @@ from midas.transforms import Resize, NormalizeImage, PrepareForNet
 from midas.model_loader import load_model
 from torchvision.transforms import Compose
 
-from common.encode import heat_to_rgb
 from common.io import create_folder, to_float_rgb, write_depth, check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.encode import heat_to_rgb
 
 BAND = "depth_midas"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -104,6 +104,35 @@ def infer(img, optimize=True, normalize=True):
     return prediction
 
 
+def process_image(args):
+    # LOAD resource 
+    from PIL import Image
+    in_image = Image.open(args.input).convert("RGB")
+    print("Original size:", in_image.width, in_image.height)
+
+    img = to_float_rgb( in_image )
+    result = infer(img, optimize=args.optimize, normalize=False)
+
+    if data:
+        depth_min = result.min().item()
+        depth_max = result.max().item()
+
+        data["bands"][BAND]["values"] = { 
+                                            "min" : {
+                                                    "value": depth_min, 
+                                                    "type": "float"
+                                            },
+                                            "max" : {
+                                                "value": depth_max,
+                                                "type": "float" }
+                                        }
+
+    result = result.cpu().numpy()
+        
+    # Save depth
+    write_depth( args.output, result, heatmap=True)
+
+
 def process_video(args):
     import decord
     from tqdm import tqdm
@@ -117,6 +146,7 @@ def process_video(args):
     fps = in_video.get_avg_fps()
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
+    output_folder = os.path.dirname(args.output)
 
     if args.subpath != '':
         if data:
@@ -128,7 +158,7 @@ def process_video(args):
     for i in tqdm( range(total_frames) ):
             
         img = to_float_rgb( in_video[i].asnumpy() )
-        prediction = infer(img, args.optimize, False)
+        prediction = infer(img, optimize=args.optimize,  ormalize=False)
         prediction = prediction.cpu().numpy()
 
         depth_min = prediction.min()
@@ -145,7 +175,6 @@ def process_video(args):
 
     out_video.close()
 
-    output_folder = os.path.dirname(args.output)
     csv_min = open( os.path.join( output_folder, BAND + "_min.csv" ) , 'w')
     csv_max = open( os.path.join( output_folder, BAND + "_max.csv" ) , 'w')
 
@@ -168,35 +197,6 @@ def process_video(args):
                                             }
                                         }
 
-def process_image(args):
-    
-    # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
-    print("Original size:", in_image.width, in_image.height)
-
-    img = to_float_rgb( in_image )
-    result = infer(img, args.optimize, False)
-
-    if data:
-        depth_min = result.min().item()
-        depth_max = result.max().item()
-
-        data["bands"][BAND]["values"] = { 
-                                                "min" : {
-                                                        "value": depth_min, 
-                                                        "type": "float"
-                                                },
-                                                "max" : {
-                                                    "value": depth_max,
-                                                    "type": "float" }
-                                            }
-
-    result = result.cpu().numpy()
-        
-    # Save depth
-    write_depth( args.output, result, heatmap=True)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -212,40 +212,16 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
-        
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join(input_folder, "payload.json")
-    if os.path.isfile(input_payload):
-        data = json.load( open(input_payload) )
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
-    input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
-
-    if not input_video:
-        input_extension = "png"
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, BAND + "." + input_extension)
-    elif args.output == "":
-        args.output = os.path.join(input_folder, BAND + "." + input_extension)
-
-    output_path = args.output
-    output_folder = os.path.dirname(output_path)
-    output_filename = os.path.basename(output_path)
-    output_basename = output_filename.rsplit(".", 1)[0]
-    output_extension = output_filename.rsplit(".", 1)[1]
-
-    check_overwrite(output_path)
-
+    # Try to load metadata
+    data = load_metadata(args.input)
     if data:
-        data["bands"][BAND] = { "url": output_filename }
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
+
+    # Check if the output folder exists
+    check_overwrite(args.output)
 
     # set torch options
     torch.backends.cudnn.enabled = True
@@ -255,11 +231,11 @@ if __name__ == "__main__":
     init_model(args.optimize)
 
     # compute depth maps
-    if input_video:
+    if is_video(args.output):
         process_video(args)
     else:
         process_image(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)

@@ -22,8 +22,10 @@ from raft.utils.utils import InputPadder
 from raft.utils.frame_utils import write_flow
 
 from common.io import VideoWriter, check_overwrite
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import process_flow, encode_flow
 
+BAND = "flow"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 ITERATIONS = 20
 MODEL = 'models/raft-things.pth'
@@ -67,7 +69,7 @@ def compute_fwdbwd_mask(fwd_flow, bwd_flow, alpha_1=0.05, alpha_2=0.5):
     return fwd_mask, bwd_mask
 
 
-def run(args):
+def runVideo(args):
     # load model
     print("Open RAFT Data pipeline")
     model = torch.nn.DataParallel(RAFT(args))
@@ -188,27 +190,24 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Try to load metadata
+    data = load_metadata(args.input)
+    if data:
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
+
+    # Check if the output folder exists
+    check_overwrite(args.output)
+
     if os.path.isdir( args.input ):
         input_payload = os.path.join( args.input, "payload.json")
         if os.path.isfile(input_payload):
             data = json.load( open(input_payload) )
             args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
 
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_payload = os.path.join(input_folder, "payload.json")
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
-    input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
-
-    if not data:
-        data = json.load( open(input_payload) )
-
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, "flow")
-    elif args.output == "":
-        args.output = os.path.join(input_folder, "flow")
+    input_folder = os.path.dirname(args.input)
 
     if args.flo_subpath != '':
         args.flo_subpath = os.path.join(input_folder, args.flo_subpath)
@@ -225,10 +224,9 @@ if __name__ == '__main__':
         os.makedirs(args.vis_subpath + "_fwd", exist_ok=True)
         os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
     
-    check_overwrite(args.output +'.mp4')
-    run(args)
+    runVideo(args)
 
+    # save metadata
     if data:
-        with open( input_payload, 'w') as payload:
-            payload.write( json.dumps(data, indent=4) )
+        write_metadata(args.input, data)
 

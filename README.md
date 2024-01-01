@@ -3,7 +3,16 @@
 
 # PRISMA
 
-Series of scripts to derive different computer vision tasks from a single image or video.
+Small framework to infer different types of data (aka: "bands") from a single image/video. 
+It's a combination of open sourced models to infer:
+
+    * depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
+    * optical flow (RAFT)
+    * segmentation (mmdet, detectron2, mediapipe)
+    * inpainting (FcfGAN)
+    * super resolution (RealSrGAN)
+
+Each image or video will become a folder where all the derived bands will be stored together with a `meta.json` that keep tracks of the associated data.
 
 ```Shell
 conda env create -f environment.yml
@@ -23,6 +32,8 @@ mim install "mmcv-full==1.7.1"
 ## Depth estimation (MiDAS 3.1)
 
 **Paper:** [Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer](https://arxiv.org/abs/1907.01341v3)
+
+**License:** [MIT](bands/midas/LICENSE)
 
 **Code Repo:** [isl-org/MiDaS](https://github.com/isl-org/MiDaS)
 
@@ -59,6 +70,8 @@ Citation for DPT-based model:
 
 **Paper:** [Zero-shot Transfer by Combining Relative and Metric Depth](https://arxiv.org/abs/2302.12288)
 
+**License:** [MIT](bands/patchfusion/zoedepth/LICENSE)
+
 **Code Repo:** [isl-org/ZoeDepth](https://github.com/isl-org/ZoeDepth)
 
 **Use:**
@@ -84,6 +97,8 @@ Citation
 ## Depth Estimation (PatchFusion)
 
 **Paper:** [PatchFusion: An End-to-End Tile-Based Framework for High-Resolution Monocular Metric Depth Estimation](https://zhyever.github.io/patchfusion/images/paper.pdf)
+
+**License:** [MIT](bands/patchfusion/LICENSE)
 
 **Code Repo:** [zhyever/PatchFusion](https://github.com/zhyever/PatchFusion)
 
@@ -111,6 +126,8 @@ Citation
 ## Depth Estimation (Marigold)
 
 **Paper:** ![Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
+
+**License:** [Apache](bands/marigold/LICENSE)
 
 **Code Repo:** [prs-eth/Marigold](https://github.com/prs-eth/Marigold)
 
@@ -142,6 +159,8 @@ Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcod
 
 **Paper:** [RAFT: Recurrent All Pairs Field Transforms for Optical Flow](https://arxiv.org/pdf/2003.12039)
 
+**License:** [BSD](bands/raft/LICENSE)
+
 **Code Repo:** [princeton-vl/RAFT](https://github.com/princeton-vl/RAFT)
 
 **Use:**
@@ -154,8 +173,9 @@ flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 
 **Code Repo:** [Detectron2](https://github.com/facebookresearch/detectron2)
 
-**Use:**
+**License:** [Apache](https://github.com/facebookresearch/detectron2/blob/main/LICENSE)
 
+**Use:**
 
 ```Shell
 mask_densepose.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
@@ -175,6 +195,8 @@ Citation:
 ## Segmentation (MMDetection)
 
 **Code Repo:** [MMDetection](https://github.com/open-mmlab/mmdetection)
+
+**License:** [Apache](bands/mmdet/LICENSE)
 
 **Use:**
 
@@ -205,6 +227,8 @@ Citation:
 
 **Code Repo:** [SHI-Labs/FcF-Inpainting](https://github.com/SHI-Labs/FcF-Inpainting)
 
+**License:** [Apaches](https://github.com/SHI-Labs/FcF-Inpainting/blob/main/LICENSE)
+
 **Use:**
 
 ```Shell
@@ -226,6 +250,8 @@ Citation:
 ## Super Resolution
 
 **Code Repo:** [xinntao/Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
+
+**License:** [BSD](bands/realesrgan/LICENSE)
 
 Citation:
 ```

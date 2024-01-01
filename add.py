@@ -3,6 +3,7 @@ import json
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
+from bands.common.meta import create_metadata, load_metadata, is_video, add_band, write_metadata
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -34,58 +35,48 @@ if __name__ == '__main__':
     input_filename = os.path.basename(input_path)
     input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
     input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
 
     # 2. Create folder
     folder_name = os.path.join(input_folder, input_basename)
     if args.output:
         folder_name = args.output
-    name_rgba = "rgba." + input_extension
+
+    data = create_metadata(folder_name)
+
+    if is_video(input_path):
+        data["ext"] = "mp4"
+    else:
+        data["ext"] = input_filename.rsplit( ".", 1 )[ 1 ]
+
+    name_rgba = "rgba." + data["ext"]
     path_rgba = os.path.join(folder_name, name_rgba)
     
-    if not os.path.exists(folder_name):
-        os.makedirs(folder_name)
+    add_band(data, "rgba", url=name_rgba)
 
-        # 3. Extract RGBA (only if doesn't exist)
-        if input_video:
-            input_extension = "mp4"
-            extra_args = "-d images -fps 24"
-            if args.rgbd != "none":
-                extra_args="-rgbd " + args.rgbd
-                run("rgba", input_path, path_rgba, extra_args=extra_args)
-        else:
-            input_extension = "png"
+    # 3. Extract RGBA (only if doesn't exist)
+    if is_video(input_path):
+        extra_args = "-d images -fps " + str(args.fps)
 
+        if args.rgbd != "none":
+            extra_args="-rgbd " + args.rgbd
+            run("rgba", input_path, path_rgba, extra_args=extra_args)
+
+        # Add metadata
+        data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
+        data["duration"] = float(data["frames"]) / float(data["fps"])
+
+    else:
+        input_extension = "png"
         cmd = "cp " + input_path + " " + path_rgba
         os.system(cmd)
 
-    # 4. Create payload
-    with open( os.path.join(folder_name, "payload.json"), 'w') as payload:
-        data = {
-            "bands": {
-                "rgba": { 
-                    "url": name_rgba,
-                },
-            }
-        }
+        # Add metadata
+        data["width"], data["height"] = get_image_size(path_rgba)
 
-        if args.rgbd != "none":
-            data["bands"]["depth"] = {
-                "url": "depth.mp4",
-            }
-        
-        if input_video:
-            data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
-            data["duration"] = float(data["frames"]) / float(data["fps"])
-            data["bands"]["rgba"]["folder"] = "images"
-            
-        else:
-            data["width"], data["height"] = get_image_size(path_rgba)
-
-        payload.write( json.dumps(data, indent=4) )
-
+    write_metadata(folder_name, data)
+    
     # 5. Extract bands
-    if input_video:
+    if is_video(input_path):
         # Depth (MariGold)
         run("depth_marigold", folder_name)
 
