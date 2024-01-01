@@ -8,15 +8,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Run band model
-def run(band, input_file, output_file="", extra_args = "", force=False):
-
-    if not force and output_file != "":
-        if os.path.exists(output_file):
-            print("Output file already exists. Skipping...")
-            return
-
+def run(band, input_folder, output_file="", extra_args = "", force=False):
     print("\n# ", band.upper())
-    cmd = "CUDA_VISIBLE_DEVICES=0 python3 bands/" + band + ".py -i " + input_file
+    cmd = "CUDA_VISIBLE_DEVICES=0 python3 bands/" + band + ".py -i " + input_folder
     if output_file != "":
         cmd += " -output " + output_file 
     if extra_args != "":
@@ -55,7 +49,7 @@ if __name__ == '__main__':
         # 3. Extract RGBA (only if doesn't exist)
         if input_video:
             input_extension = "mp4"
-            extra_args = ""
+            extra_args = "-d images -fps 24"
             if args.rgbd != "none":
                 extra_args="-rgbd " + args.rgbd
                 run("rgba", input_path, path_rgba, extra_args=extra_args)
@@ -83,7 +77,7 @@ if __name__ == '__main__':
         if input_video:
             data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
             data["duration"] = float(data["frames"]) / float(data["fps"])
-            data["bands"]["rgba"]["folder"] = "rgba"
+            data["bands"]["rgba"]["folder"] = "images"
             
         else:
             data["width"], data["height"] = get_image_size(path_rgba)

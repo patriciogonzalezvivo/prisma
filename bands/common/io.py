@@ -16,6 +16,14 @@ def copy_folder(src, dst):
     os.system(cmd)
 
 
+def check_overwrite(path):
+    if os.path.exists(path):
+        print("File exists: " + path)
+        answer = input("Do you want to over write it? [y/N]: ") 
+        if answer != "y":
+            exit()
+
+
 def get_image_size(path):
     img = cv2.imread(path)
     return img.shape[1], img.shape[0]

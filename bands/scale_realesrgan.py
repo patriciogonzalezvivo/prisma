@@ -12,6 +12,8 @@ from basicsr.utils.download_util import load_file_from_url
 from realesrgan import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 
+from common.io import check_overwrite
+
 BAND = "scaled"
 model = None
 scale = 4
@@ -158,11 +160,12 @@ def main():
     name = input_basename + "_" + BAND + "x" + str(int(args.scale))
     output_filename = name + "." + input_extension
 
-
     if os.path.isdir( args.output ):
         args.output = os.path.join(args.output, output_filename)
     elif args.output == "":
         args.output = os.path.join(input_folder, output_filename)
+
+    check_overwrite(args.output)
 
     if os.path.isfile(input_payload):  
         if not data:

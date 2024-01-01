@@ -11,8 +11,9 @@ from typing import Any, Final, Iterator
 import cv2
 import mediapipe as mp
 import numpy as np
-
 import snowy
+
+from common.io import check_overwrite
 
 BAND = "mask_mediapipe"
 
@@ -177,6 +178,8 @@ if __name__ == "__main__":
         args.output = os.path.join(args.output, BAND + "." + input_extension)
     elif args.output == "":
         args.output = os.path.join(input_folder, BAND + "." + input_extension)
+
+    check_overwrite(args.output)
 
     init_model()
 

@@ -21,7 +21,7 @@ from raft.utils import flow_viz
 from raft.utils.utils import InputPadder
 from raft.utils.frame_utils import write_flow
 
-from common.io import VideoWriter
+from common.io import VideoWriter, check_overwrite
 from common.encode import process_flow, encode_flow
 
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -225,6 +225,7 @@ if __name__ == '__main__':
         os.makedirs(args.vis_subpath + "_fwd", exist_ok=True)
         os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
     
+    check_overwrite(args.output +'.mp4')
     run(args)
 
     if data:

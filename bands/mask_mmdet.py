@@ -15,6 +15,7 @@ from mmdet.apis import init_detector, inference_detector
 
 import snowy
 from common.encode import hue_to_rgb
+from common.io import create_folder, check_overwrite
 
 BAND = "mask"
 
@@ -29,6 +30,11 @@ CLASSES = ['person', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 
 data = None
 model = None
 device = None
+
+def init_model():
+    global model, device
+    device = torch.device( DEVICE )
+    model = init_detector(CONFIG, MODEL, device=device)
 
 
 def getTotalMasks(result, category=0, conf=0.2):
@@ -49,6 +55,8 @@ def getMaskRGB(result, category, index):
 
 
 def runVideo(args, data = None):
+    global model, device
+
     import decord
     from tqdm import tqdm
     from common.io import VideoWriter
@@ -69,13 +77,31 @@ def runVideo(args, data = None):
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
 
+    if args.mask_subpath != '':
+        args.mask = True
+
     if args.mask:
         mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
+
+        if args.mask_subpath != '':
+            if data:
+                data["bands"][BAND]["folder"] = args.mask_subpath
+            args.mask_subpath = os.path.join(output_folder, args.mask_subpath)
+            create_folder(args.mask_subpath)
+
+    if args.sdf_subpath != '':
+        args.sdf = True
 
     if args.sdf:
         sdf_filename = output_basename + "_sdf." + output_extension
         sdf_path = output_folder + "/" + sdf_filename
         sdf_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=sdf_path )
+
+        if args.sdf_subpath != '':
+            if data:
+                data["bands"][BAND + "_sdf"]["folder"] = args.sdf_subpath
+            args.sdf_subpath = os.path.join(output_folder, args.sdf_subpath)
+            create_folder(args.sdf_subpath)
 
     for f in tqdm( range(total_frames) ):
         img = cv2.cvtColor(in_video[f].asnumpy(), cv2.COLOR_BGR2RGB)
@@ -94,6 +120,9 @@ def runVideo(args, data = None):
         if args.mask:
             mask_video.write( masks.astype(np.uint8) )
 
+            if args.mask_subpath != '':
+                cv2.imwrite(os.path.join(args.mask_subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
+
         if args.sdf:
             masks = snowy.rgb_to_luminance( snowy.extract_rgb(masks) )
             sdf = snowy.generate_sdf(masks != 0.0)
@@ -102,6 +131,9 @@ def runVideo(args, data = None):
             sdf *= 255
             sdf = cv2.merge((sdf,sdf,sdf))
             sdf_video.write( sdf.astype(np.uint8) )
+
+            if args.sdf_subpath != '':
+                cv2.imwrite(os.path.join(args.sdf_subpath, "{:05d}.png".format(f)), sdf.astype(np.uint8))
 
     # Mask
     if args.mask:
@@ -118,7 +150,8 @@ def runVideo(args, data = None):
 
 
 def runImage(args, data = None):
-    
+    global model, device
+
     # Export properties
     output_path = args.output
     output_folder = os.path.dirname(output_path)
@@ -168,8 +201,12 @@ if __name__ == "__main__":
 
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument("-sdf", action='store_true')
+
     parser.add_argument("-mask", action='store_true')
+    parser.add_argument("-sdf", action='store_true')
+
+    parser.add_argument('-mask_subpath', '-md', help="Mask Subpath to frames", type=str, default='')
+    parser.add_argument('-sdf_subpath', '-sd', help="SDF Subpath to frames", type=str, default='')
 
     args = parser.parse_args()
 
@@ -195,8 +232,9 @@ if __name__ == "__main__":
     elif args.output == "":
         args.output = os.path.join(input_folder, BAND + "." + input_extension)
         
-    device = torch.device( DEVICE )
-    model = init_detector(CONFIG, MODEL, device=device)
+    check_overwrite(args.output)
+
+    init_model()
 
     if os.path.isfile(input_payload):
         if not data:

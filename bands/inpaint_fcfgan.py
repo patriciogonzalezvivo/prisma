@@ -13,6 +13,8 @@ warnings.filterwarnings("ignore")
 from PIL import Image
 import legacy
 
+from common.io import check_overwrite
+
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL  = 'models/places_512.pkl'
 # MODEL  = 'models/places.pkl'
@@ -193,10 +195,11 @@ if __name__ == "__main__":
     elif args.output == "":
         args.output = os.path.join(input_folder, "mask_inpaint." + input_extension)
 
+    check_overwrite(args.output)
+
     if os.path.isfile(input_payload):
         if not data:
             data = json.load( open(input_payload) )
-
 
     if not input_video:
         process_image(args)

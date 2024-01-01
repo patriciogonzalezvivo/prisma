@@ -18,7 +18,7 @@ from detectron2.engine import DefaultPredictor
 import snowy
 
 from common.encode import hue_to_rgb, mask_to_rgb
-from common.io import VideoWriter
+from common.io import check_overwrite
 
 BAND = "mask"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -231,6 +231,8 @@ if __name__ == "__main__":
         args.output = os.path.join(args.output, BAND + "." + input_extension)
     elif args.output == "":
         args.output = os.path.join(input_folder, BAND + "." + input_extension)
+
+    check_overwrite(args.output)
 
     init_model()
 

@@ -12,7 +12,7 @@ from marigold import MarigoldPipeline
 from marigold.util.seed_all import seed_all
 
 from common.encode import heat_to_rgb
-from common.io import create_folder, write_depth
+from common.io import create_folder, write_depth, check_overwrite
 
 BAND = "depth_marigold"
 CHECKPOINT = "Bingxin/Marigold"
@@ -98,13 +98,14 @@ def process_video(args):
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
 
-    output_folder = os.path.dirname(args.output)
-    output_folder = os.path.join(output_folder, BAND)
-    create_folder(output_folder)
-    if data:
-        data["bands"][BAND]["folder"] = BAND
-
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
+
+    output_folder = os.path.dirname(args.output)
+    if args.subpath != '':
+        if data:
+            data["bands"][BAND]["folder"] = args.subpath
+        args.subpath = os.path.join(output_folder, args.subpath)
+        create_folder(args.subpath)
 
     csv_files = []
     for i in tqdm( range(total_frames) ):
@@ -113,17 +114,19 @@ def process_video(args):
         prediction = infer(img, normalize=False)
 
         if args.npy:
-            output_folder = os.path.dirname(args.output)
-            np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
+            if args.subpath != '':
+                np.save( os.path.join(args.subpath, "{:05d}.npy".format(i)), prediction)
+            else:
+                output_folder = os.path.dirname(args.output)
+                np.save(os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
         depth_min = prediction.min()
         depth_max = prediction.max()
-
         depth = 1.0 - (prediction - depth_min) / (depth_max - depth_min)
-
         out_video.write( ( heat_to_rgb(depth.astype(np.float64)) * 255 ).astype(np.uint8) )
 
-        write_depth( os.path.join(output_folder, "{:05d}.png".format(i)), prediction, normalize=False, flip=False, heatmap=True)
+        if args.subpath != '':
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=False, flip=False, heatmap=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )
@@ -185,9 +188,8 @@ if __name__ == "__main__":
     parser.add_argument('-output', '-o', help="output", type=str, default="")
     parser.add_argument('-checkpoint', help="checkpoint", type=str, default=CHECKPOINT)
     parser.add_argument('-npy' , '-n', help="Keep numpy data", action='store_true')
+    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
     args = parser.parse_args()
-
-    init_model(checkpoint=args.checkpoint) 
 
     if os.path.isdir( args.input ):
         payload_path = os.path.join( args.input, "payload.json")
@@ -213,12 +215,13 @@ if __name__ == "__main__":
     elif args.output == "":
         args.output = os.path.join(input_folder, BAND + "." + input_extension)
 
-    print("output", args.output)
     output_path = args.output
     output_folder = os.path.dirname(output_path)
     output_filename = os.path.basename(output_path)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
+
+    check_overwrite(output_path)
 
     if args.npy and input_video:
         os.makedirs(os.path.join(output_folder, BAND + "_npy"), exist_ok=True)
@@ -227,6 +230,8 @@ if __name__ == "__main__":
         data["bands"][BAND] = { "url": output_filename }
 
     # compute depth maps
+    init_model(checkpoint=args.checkpoint) 
+    
     if input_video:
         process_video(args)
     else:

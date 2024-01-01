@@ -8,12 +8,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from common.encode import heat_to_rgb
-from common.io import create_folder, write_depth
+from common.io import create_folder, write_depth, check_overwrite
 
 BAND = "depth_zoe"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
-WIDTH = int(1280)
-HEIGHT = int(720)
 
 device = None
 model = None
@@ -80,11 +78,11 @@ def process_video(args):
     width /= 2
     height /= 2
 
-    output_folder = os.path.dirname(args.output)
-    output_folder = os.path.join(output_folder, BAND)
-    create_folder(output_folder)
-    if data:
-        data["bands"][BAND]["folder"] = BAND
+    if args.subpath != '':
+        if data:
+            data["bands"][BAND]["folder"] = args.subpath
+        args.subpath = os.path.join(output_folder, args.subpath)
+        create_folder(args.subpath)
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
 
@@ -98,7 +96,8 @@ def process_video(args):
         depth = 1.0-depth.astype(np.float64)
         out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
 
-        write_depth( os.path.join(output_folder, "{:05d}.png".format(i)), prediction, flip=False, heatmap=True)
+        if args.subpath != '':
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, flip=False, heatmap=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )
@@ -158,16 +157,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-width', help="final max width", type=str, default=WIDTH)
-    parser.add_argument('-height', help="final max height", type=str, default=HEIGHT)
-
+    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
     args = parser.parse_args()
-
-    # set torch options
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.benchmark = True
-
-    init_model()
 
     if os.path.isdir( args.input ):
         payload_path = os.path.join( args.input, "payload.json")
@@ -202,9 +193,17 @@ if __name__ == "__main__":
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
 
+    check_overwrite(output_path)
+
     if data:
         data["bands"][BAND] = { "url": output_filename }
 
+    # set torch options
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
+
+    init_model()
+    
     # compute depth maps
     if input_video:
         process_video(args)

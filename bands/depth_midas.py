@@ -15,7 +15,7 @@ from midas.model_loader import load_model
 from torchvision.transforms import Compose
 
 from common.encode import heat_to_rgb
-from common.io import to_float_rgb, write_depth
+from common.io import create_folder, to_float_rgb, write_depth, check_overwrite
 
 BAND = "depth_midas"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -118,6 +118,12 @@ def process_video(args):
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
 
+    if args.subpath != '':
+        if data:
+            data["bands"][BAND]["folder"] = args.subpath
+        args.subpath = os.path.join(output_folder, args.subpath)
+        create_folder(args.subpath)
+
     csv_files = []
     for i in tqdm( range(total_frames) ):
             
@@ -130,6 +136,9 @@ def process_video(args):
 
         depth = (prediction - depth_min) / (depth_max - depth_min)
         out_video.write( ( heat_to_rgb(depth.astype(np.float64)) * 255 ).astype(np.uint8) )
+
+        if args.subpath != '':
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, heatmap=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )
@@ -195,21 +204,13 @@ if __name__ == "__main__":
     parser.add_argument('-input', '-i', help="input", type=str, required=True)
     parser.add_argument('-output', '-o', help="output", type=str, default="")
     parser.add_argument('-model', help="model path", type=str, default=MODEL)
-    parser.add_argument('-width', help="final max width", type=str, default=WIDTH)
-    parser.add_argument('-height', help="final max height", type=str, default=HEIGHT)
 
+    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
     parser.add_argument('-optimize', dest='optimize', action='store_true')
     parser.add_argument('-no-optimize', dest='optimize', action='store_false')
     parser.set_defaults(optimize=True)
 
     args = parser.parse_args()
-
-    # set torch options
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.benchmark = True
-
-    # Load MiDAS v3.1
-    init_model(args.optimize)
 
     if os.path.isdir( args.input ):
         payload_path = os.path.join( args.input, "payload.json")
@@ -235,15 +236,23 @@ if __name__ == "__main__":
     elif args.output == "":
         args.output = os.path.join(input_folder, BAND + "." + input_extension)
 
-    print("output", args.output)
     output_path = args.output
     output_folder = os.path.dirname(output_path)
     output_filename = os.path.basename(output_path)
     output_basename = output_filename.rsplit(".", 1)[0]
     output_extension = output_filename.rsplit(".", 1)[1]
 
+    check_overwrite(output_path)
+
     if data:
         data["bands"][BAND] = { "url": output_filename }
+
+    # set torch options
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
+
+    # Load MiDAS v3.1
+    init_model(args.optimize)
 
     # compute depth maps
     if input_video:
