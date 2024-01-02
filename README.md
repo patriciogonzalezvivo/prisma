@@ -1,5 +1,6 @@
 
-![prisma](https://github.com/patriciogonzalezvivo/prisma/assets/346914/6e123f78-3c95-4642-be2a-f17e8e853dfd)
+![prisma](https://github.com/patriciogonzalezvivo/prisma/assets/346914/e268e0c5-ce0e-4988-bda8-fcd136a7876f)
+
 
 
 # PRISMA
