@@ -112,10 +112,11 @@ def process_image(args):
 
     img = to_float_rgb( in_image )
     result = infer(img, optimize=args.optimize, normalize=False)
+    result = result.cpu().numpy()
 
     if data:
-        depth_min = result.min().item()
-        depth_max = result.max().item()
+        depth_min = result.min()
+        depth_max = result.max()
 
         data["bands"][BAND]["values"] = { 
                                             "min" : {
@@ -127,10 +128,8 @@ def process_image(args):
                                                 "type": "float" }
                                         }
 
-    result = result.cpu().numpy()
-        
     # Save depth
-    write_depth( args.output, result, heatmap=True)
+    write_depth( args.output, result, normalize=True, flip=True, heatmap=True)
 
 
 def process_video(args):
