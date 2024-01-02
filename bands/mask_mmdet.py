@@ -192,13 +192,13 @@ def runImage(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
+    parser.add_argument('--input', '-i', help="input", type=str, required=True)
+    parser.add_argument('--output', '-o', help="output", type=str, default="")
 
-    parser.add_argument("-sdf", action='store_true')
+    parser.add_argument("--sdf", action='store_true')
 
-    parser.add_argument('-mask_subpath', '-md', help="Mask Subpath to frames", type=str, default='')
-    parser.add_argument('-sdf_subpath', '-sd', help="SDF Subpath to frames", type=str, default='')
+    parser.add_argument('--mask_subpath', '-md', help="Mask Subpath to frames", type=str, default='')
+    parser.add_argument('--sdf_subpath', '-sd', help="SDF Subpath to frames", type=str, default='')
 
     args = parser.parse_args()
 

@@ -104,7 +104,16 @@ def write_flow(flow, filename):
     f.close()
 
 
-def write_pcl(filename, depth, rgb):
+def write_pcl(filename, depth, rgb, flip=False):
+    
+    if flip:
+        depth_min = depth.min()
+        depth_max = depth.max()
+        depth = (depth - depth_min) / (depth_max - depth_min)
+        depth = 1.0-depth
+
+        depth = depth_min + depth * (depth_max - depth_min)
+
     intrinsic = [1000.0, 1000.0, rgb.shape[1]/2, rgb.shape[0]/2]
     pcd = reconstruct_pcd(depth, intrinsic[0], intrinsic[1], intrinsic[2], intrinsic[3])
     save_point_cloud(pcd.reshape((-1, 3)), rgb.reshape(-1, 3), filename)

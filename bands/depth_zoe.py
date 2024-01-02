@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from common.encode import heat_to_rgb
-from common.io import create_folder, write_depth, check_overwrite
+from common.io import create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 
 BAND = "depth_zoe"
@@ -18,7 +18,7 @@ model = None
 data = None
 
 # Load Zoe
-def init_model(optimize=True):
+def init_model():
     global model, device
     device = torch.device( DEVICE )
 
@@ -41,18 +41,15 @@ def init_model(optimize=True):
     return model
 
 
-def infer(img, msize, optimize=True, normalize=True):
+def infer(img, normalize=False):
     global model, device
 
     if model == None:
-        init_model(optimize)
+        init_model()
 
-    img = img.astype(np.float32)
     prediction = model.infer_pil( img )
 
     if normalize:
-        prediction = prediction.cpu().detach().numpy()
-
         # Normalization
         depth_min = prediction.min()
         depth_max = prediction.max()
@@ -61,6 +58,38 @@ def infer(img, msize, optimize=True, normalize=True):
             prediction = 1.0-(prediction - depth_min) / (depth_max - depth_min)
 
     return prediction
+
+
+def process_image(args):
+    # LOAD resource 
+    from PIL import Image
+    in_image = Image.open(args.input).convert("RGB")
+    output_folder = os.path.dirname(args.output)
+
+    # prediction = model.infer_pil( in_image )
+    prediction = infer( in_image, normalize=False )
+
+    if data:
+        depth_min = prediction.min().item()
+        depth_max = prediction.max().item()
+        data["bands"][BAND]["values"] = { 
+                                            "min" : {
+                                                    "value": depth_min, 
+                                                    "type": "float"
+                                            },
+                                            "max" : {
+                                                "value": depth_max,
+                                                "type": "float" 
+                                            }
+                                        }
+    if args.npy:
+        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
+
+    if args.ply:
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image), flip=False)
+
+    # Save depth
+    write_depth( args.output, prediction, normalize=True, flip=False, heatmap=True)
 
 
 def process_video(args):
@@ -78,18 +107,27 @@ def process_video(args):
     width /= 2
     height /= 2
 
+    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
+    output_folder = os.path.dirname(args.output)
+    
     if args.subpath != '':
         if data:
             data["bands"][BAND]["folder"] = args.subpath
         args.subpath = os.path.join(output_folder, args.subpath)
         create_folder(args.subpath)
 
-    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
-
     csv_files = []
     for i in tqdm( range(total_frames) ):
-        img = in_video[i].asnumpy() 
-        prediction = model.infer_pil( img )
+        img = in_video[i].asnumpy()
+
+        prediction = infer( img, normalize=False )
+
+        if args.npy:
+            if args.subpath != '':
+                np.save( os.path.join(args.subpath, "{:05d}.npy".format(i)), prediction)
+            else:
+                np.save( os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
+
         depth_min = prediction.min()
         depth_max = prediction.max()
         depth = (prediction - depth_min) / (depth_max - depth_min)
@@ -97,7 +135,7 @@ def process_video(args):
         out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
 
         if args.subpath != '':
-            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, flip=False, heatmap=True)
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=True, flip=False, heatmap=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )
@@ -127,37 +165,14 @@ def process_video(args):
                                         }
 
 
-def process_image(args):
-    # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
-
-    prediction = model.infer_pil( in_image )
-
-    if data:
-        depth_min = prediction.min().item()
-        depth_max = prediction.max().item()
-        data["bands"][BAND]["values"] = { 
-                                            "min" : {
-                                                    "value": depth_min, 
-                                                    "type": "float"
-                                            },
-                                            "max" : {
-                                                "value": depth_max,
-                                                "type": "float" 
-                                            }
-                                        }
-
-    # Save depth
-    write_depth( args.output, prediction, flip=False, heatmap=True)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
+    parser.add_argument('--input', '-i', help="Input image/video", type=str, required=True)
+    parser.add_argument('--output', '-o', help="Output image/video", type=str, default="")
+    parser.add_argument('--npy' , '-n', help="Save numpy data", action='store_true')
+    parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
     args = parser.parse_args()
     
     # Try to load metadata
@@ -185,6 +200,5 @@ if __name__ == "__main__":
         process_image(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)
 

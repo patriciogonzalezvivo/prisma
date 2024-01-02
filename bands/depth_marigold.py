@@ -2,14 +2,13 @@ import numpy as np
 import torch
 import argparse
 import os
-from PIL import Image
 
 import warnings
 warnings.filterwarnings("ignore")
 
 from marigold import MarigoldPipeline
 
-from common.io import create_folder, write_depth, check_overwrite
+from common.io import create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
@@ -55,7 +54,7 @@ def init_model(checkpoint=CHECKPOINT, apple_silicon=False, half_precision=False)
     return model
 
 
-def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, processing_res=PROCESSING_RESOLUTION, normalize=True):
+def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, processing_res=PROCESSING_RESOLUTION, normalize=False):
     global model
 
     if model == None:
@@ -86,13 +85,16 @@ def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, proc
 
 
 def process_image(args):
-    img = Image.open(args.input).convert("RGB")
-    prediction = infer(img, normalize=False)
+    output_folder = os.path.dirname(args.output)
+
+    from PIL import Image
+    in_image = Image.open(args.input).convert("RGB")
+
+    prediction = infer(in_image, normalize=False)
 
     if data:
         depth_min = prediction.min().item()
         depth_max = prediction.max().item()
-
         data["bands"][BAND]["values"] = { 
                                                 "min" : {
                                                         "value": depth_min, 
@@ -103,8 +105,10 @@ def process_image(args):
                                                     "type": "float" }
                                             }
     if args.npy:
-        output_folder = os.path.dirname(args.output)
-        np.save( os.path.join(output_folder, BAND + '.npy', prediction) )
+        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
+
+    if args.ply:
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), 0.5 + prediction * 2.0, np.array(in_image))
 
     # Save depth
     write_depth( args.output, prediction, flip=False, heatmap=True)
@@ -182,11 +186,13 @@ def process_video(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-checkpoint', help="checkpoint", type=str, default=CHECKPOINT)
-    parser.add_argument('-npy' , '-n', help="Keep numpy data", action='store_true')
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
+    parser.add_argument('--input', '-i', help="Input image/video", type=str, required=True)
+    parser.add_argument('--output', '-o', help="Output image/video", type=str, default="")
+    parser.add_argument('--npy' , '-n', help="Save numpy data", action='store_true')
+    parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
+
+    parser.add_argument('--checkpoint','-c', help="checkpoint", type=str, default=CHECKPOINT)
     args = parser.parse_args()
 
     # Try to load metadata
@@ -212,5 +218,4 @@ if __name__ == "__main__":
         process_image(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)

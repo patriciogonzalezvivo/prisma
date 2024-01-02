@@ -13,7 +13,7 @@ from midas.transforms import Resize, NormalizeImage, PrepareForNet
 from midas.model_loader import load_model
 from torchvision.transforms import Compose
 
-from common.io import create_folder, to_float_rgb, write_depth, check_overwrite
+from common.io import create_folder, to_float_rgb, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
@@ -71,13 +71,14 @@ def init_model(optimize=True):
     return model
 
 
-def infer(img, optimize=True, normalize=True):
+def infer(img, optimize=True, normalize=False):
     global model, device, transform
 
     if model == None:
         init_model(optimize)
 
-    img_input = transform({"image": img})["image"]
+    img_float = to_float_rgb( img )
+    img_input = transform( {"image": img_float} )["image"]
     with torch.no_grad():
         sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
         if optimize==True and device==torch.device("cuda"):
@@ -86,13 +87,13 @@ def infer(img, optimize=True, normalize=True):
         prediction = model.forward(sample)
         prediction = torch.nn.functional.interpolate(
                         prediction.unsqueeze(1),
-                        size=img.shape[:2],
+                        size=img_float.shape[:2],
                         mode="bicubic",
                         align_corners=True
                     ).squeeze()
+    prediction = prediction.cpu().numpy().astype(np.float32)
         
     if normalize:
-        prediction = prediction.cpu().numpy()
 
         # Normalization
         depth_min = prediction.min()
@@ -108,16 +109,14 @@ def process_image(args):
     # LOAD resource 
     from PIL import Image
     in_image = Image.open(args.input).convert("RGB")
-    print("Original size:", in_image.width, in_image.height)
+    output_folder = os.path.dirname(args.output)
 
-    img = to_float_rgb( in_image )
-    result = infer(img, optimize=args.optimize, normalize=False)
-    result = result.cpu().numpy()
+    prediction = infer(in_image, optimize=args.optimize, normalize=False)
+    prediction = prediction.astype(np.float32)
 
     if data:
-        depth_min = result.min()
-        depth_max = result.max()
-
+        depth_min = prediction.min().item()
+        depth_max = prediction.max().item()
         data["bands"][BAND]["values"] = { 
                                             "min" : {
                                                     "value": depth_min, 
@@ -128,8 +127,14 @@ def process_image(args):
                                                 "type": "float" }
                                         }
 
+    if args.npy:
+        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
+
+    if args.ply:
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), 1.0 + prediction * 0.01, np.array(in_image), flip=True)
+
     # Save depth
-    write_depth( args.output, result, normalize=True, flip=True, heatmap=True)
+    write_depth( args.output, prediction, normalize=True, flip=True, heatmap=True)
 
 
 def process_video(args):
@@ -155,16 +160,21 @@ def process_video(args):
 
     csv_files = []
     for i in tqdm( range(total_frames) ):
-            
-        img = to_float_rgb( in_video[i].asnumpy() )
-        prediction = infer(img, optimize=args.optimize,  ormalize=False)
-        prediction = prediction.cpu().numpy()
+
+        img = in_video[i].asnumpy()
+        prediction = infer(img, optimize=args.optimize, normalize=False)
+
+        if args.npy:
+            if args.subpath != '':
+                np.save( os.path.join(args.subpath, "{:05d}.npy".format(i)), prediction)
+            else:
+                np.save( os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
         depth_min = prediction.min()
         depth_max = prediction.max()
 
         depth = (prediction - depth_min) / (depth_max - depth_min)
-        out_video.write( ( heat_to_rgb(depth.astype(np.float64)) * 255 ).astype(np.uint8) )
+        out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
 
         if args.subpath != '':
             write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, heatmap=True)
@@ -200,13 +210,15 @@ def process_video(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-model', help="model path", type=str, default=MODEL)
+    parser.add_argument('--input', '-i', help="Input image/video", type=str, required=True)
+    parser.add_argument('--output', '-o', help="Output image/video", type=str, default="")
+    parser.add_argument('--npy' , '-n', help="Save numpy data", action='store_true')
+    parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
 
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
-    parser.add_argument('-optimize', dest='optimize', action='store_true')
-    parser.add_argument('-no-optimize', dest='optimize', action='store_false')
+    parser.add_argument('--model', help="model path", type=str, default=MODEL)
+    parser.add_argument('--optimize', dest='optimize', action='store_true')
+    parser.add_argument('--no-optimize', dest='optimize', action='store_false')
     parser.set_defaults(optimize=True)
 
     args = parser.parse_args()
@@ -236,5 +248,4 @@ if __name__ == "__main__":
         process_image(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)

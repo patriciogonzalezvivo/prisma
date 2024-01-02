@@ -22,13 +22,13 @@ def get_pcd_base(H, W, u0, v0, fx, fy):
 
 
 def reconstruct_pcd(depth, fx, fy, u0, v0, pcd_base=None, mask=None):
-    depth = cv2.medianBlur(depth, 5)
+    depth_blured = cv2.medianBlur(depth, 5)
 
     if pcd_base is None:
-        H, W = depth.shape
+        H, W = depth_blured.shape
         pcd_base = get_pcd_base(H, W, u0, v0, fx, fy)
 
-    pcd = depth[:, :, None] * pcd_base
+    pcd = depth_blured[:, :, None] * pcd_base
     
     if mask:
         pcd[mask] = 0

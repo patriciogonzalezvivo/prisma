@@ -12,7 +12,7 @@ def run(band, input_folder, output_file="", extra_args = "", force=False):
     print("\n# ", band.upper())
     cmd = "CUDA_VISIBLE_DEVICES=0 python3 bands/" + band + ".py -i " + input_folder
     if output_file != "":
-        cmd += " -output " + output_file 
+        cmd += " --output " + output_file 
     if extra_args != "":
         cmd += " " + extra_args
     print(cmd,"\n")
@@ -21,11 +21,11 @@ def run(band, input_folder, output_file="", extra_args = "", force=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-input', '-i', help="input file", type=str, required=True)
-    parser.add_argument('-output', help="folder name", type=str, default='')
-    parser.add_argument('-fps', '-r', help='fix framerate', type=float, default = 0)
-    parser.add_argument('-rgbd', help='Where the depth is', type=str, default='none')
-    parser.add_argument('-force', '-f', help='Force to run all bands', action='store_true')
+    parser.add_argument('--input', '-i', help="input file", type=str, required=True)
+    parser.add_argument('--output', help="folder name", type=str, default='')
+    parser.add_argument('--fps', '-r', help='fix framerate', type=float, default = 0)
+    parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
+    parser.add_argument('--force', '-f', help='Force to run all bands', action='store_true')
     args = parser.parse_args()
 
     # 1. Get input basic parameters
@@ -54,10 +54,10 @@ if __name__ == '__main__':
 
     # 3. Extract RGBA (only if doesn't exist)
     if is_video(input_path):
-        extra_args = "-d images -fps " + str(args.fps)
+        extra_args = "-d images --fps " + str(args.fps)
 
         if args.rgbd != "none":
-            extra_args="-rgbd " + args.rgbd
+            extra_args="--rgbd " + args.rgbd
             run("rgba", input_path, path_rgba, extra_args=extra_args)
 
         # Add metadata
@@ -83,11 +83,11 @@ if __name__ == '__main__':
     run("depth_zoe", folder_name)
 
     # Mask (mmdet)
-    run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
+    run("mask_mmdet",  folder_name, extra_args="--mask --sdf")
 
     if is_video(input_path):
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_fusion", folder_name, extra_args="-mode=p49")
+        run("depth_fusion", folder_name, extra_args="--mode=p49")
 
         # Flow (RAFT)
         run("flow_raft", folder_name)
