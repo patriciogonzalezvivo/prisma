@@ -163,7 +163,7 @@ def process_video(args):
 
     csv_files = []
     for i in tqdm( range(total_frames) ):
-        img = n_video[i].asnumpy()
+        img = in_video[i].asnumpy()
 
         prediction = infer( img, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary)
 

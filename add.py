@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         if args.rgbd != "none":
             extra_args="--rgbd " + args.rgbd
-            
+
         run("rgba", input_path, path_rgba, extra_args=extra_args)
 
         # Add metadata
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     run("depth_zoe", folder_name)
 
     # Mask (mmdet)
-    run("mask_mmdet",  folder_name, extra_args="--mask --sdf")
+    run("mask_mmdet",  folder_name, extra_args="--sdf")
 
     if is_video(input_path):
         # Depth (PatchFusion w ZoeDepth)
