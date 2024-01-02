@@ -76,58 +76,26 @@ if __name__ == '__main__':
     write_metadata(folder_name, data)
     
     # 5. Extract bands
-    if is_video(input_path):
-        # Depth (MariGold)
-        run("depth_marigold", folder_name)
+    
+    # Depth (MariGold)
+    run("depth_marigold", folder_name)
 
+    # Depth HUE (ZoeDepth w MiDAS v2.1)
+    run("depth_zoe", folder_name)
+
+    # Mask (mmdet)
+    run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
+
+    if is_video(input_path):
         # Depth (PatchFusion w ZoeDepth)
         run("depth_fusion", folder_name, extra_args="-mode=p49")
-
-        # Depth HUE (ZoeDepth w MiDAS v2.1)
-        run("depth_zoe", folder_name)
-
-        # # Depth (MIDAS v3.1)
-        # run("depth_midas", folder_name)
 
         # Flow (RAFT)
         run("flow_raft", folder_name)
 
-        # Mask (detectron2)
-        run("mask_detectron2",  folder_name, extra_args="-seg")
-
-        # Mask (mmdet)
-        run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
-
-        # DensePose (detectron2)
-        run("mask_densepose",  folder_name)
-
-        # Camera estimation using COLMAP
-        run("camera_colmap", folder_name)
-
-    else:
-        # Depth (MariGold)
-        run("depth_marigold", folder_name)
-        
+    else:        
         # Depth (PatchFusion w ZoeDepth)
         run("depth_fusion", folder_name)
-
-        # Depth (ZoeDepth w MiDAS v2.1)
-        run("depth_zoe", folder_name)
-
-        # # Depth (MIDAS v3.1)
-        # run("depth_midas", folder_name)
-
-        # Mask (detectron2)
-        run("mask_detectron2",  folder_name, extra_args="-seg")
-
-        # Mask (mmdet)
-        run("mask_mmdet",  folder_name, extra_args="-mask -sdf")
-
-        # DensePose (detectron2)
-        run("mask_densepose",  folder_name)
-
-        # # Pose (mediapipe)
-        # run("mask_mediapipe",  folder_name)
 
         # Mask inpainting
         run("inpaint_fcfgan", folder_name)
