@@ -22,7 +22,7 @@ from metric3d.utils.mldb import load_data_info, reset_ckpt_path
 from metric3d.utils.visualization import save_val_imgs
 from metric3d.utils.unproj_pcd import reconstruct_pcd, save_point_cloud
 
-from common.io import check_overwrite, create_folder, write_depth
+from common.io import check_overwrite, create_folder, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
@@ -232,7 +232,7 @@ def get_prediction(
     return pred_depth, pred_depth_scale, scale
 
 
-def infer(img, normalize=True, options=None):
+def infer(img, normalize=False, options=None):
     global model, cfg, data_info
 
     if model == None:
@@ -255,9 +255,9 @@ def infer(img, normalize=True, options=None):
     )
 
     prediction = pred_depth.squeeze().cpu().numpy()
-    max_scale = prediction.max()
-    prediction = prediction/max_scale
-    # prediction = cv2.resize(prediction, (img.shape[2], img.shape[1]))
+    # max_scale = prediction.max()
+    # prediction = prediction/max_scale
+    prediction = cv2.resize(prediction, (img.shape[1], img.shape[0]))
 
     if normalize:
         # Normalization
@@ -271,13 +271,14 @@ def infer(img, normalize=True, options=None):
 
 
 def process_image(args):
-    img = cv2.imread(args.input)[:, :, ::-1].copy()
+    output_folder = os.path.dirname(args.output)
+    in_image = cv2.imread(args.input)[:, :, ::-1].copy()
 
-    result = infer(img, normalize=False)
+    prediction = infer(in_image, normalize=False)
 
     if data:
-        depth_min = result.min()
-        depth_max = result.max()
+        depth_min = prediction.min().item()
+        depth_max = prediction.max().item()
 
         data["bands"][BAND]["values"] = { 
                                                 "min" : {
@@ -289,8 +290,14 @@ def process_image(args):
                                                     "type": "float" }
                                             }
 
+    if args.npy:
+        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
+
+    if args.ply:
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image))
+
     # Save depth
-    write_depth( args.output, result, flip=False, heatmap=True)
+    write_depth( args.output, prediction, flip=False, normalize=True, heatmap=True)
 
 
 def process_video(args):
@@ -359,9 +366,11 @@ def process_video(args):
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a segmentor')
-    parser.add_argument('-input','-i', help='input file', required=True)
-    parser.add_argument('-output','-o', help='output file', default='')
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
+    parser.add_argument('--input', '-i', help="Input image/video", type=str, required=True)
+    parser.add_argument('--output', '-o', help="Output image/video", type=str, default="")
+    parser.add_argument('--npy' , '-n', help="Save numpy data", action='store_true')
+    parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
 
     parser.add_argument('--node_rank', type=int, default=0)
     parser.add_argument('--nnodes', type=int, default=1, help='number of nodes')
@@ -391,5 +400,4 @@ if __name__ == '__main__':
         process_image(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)

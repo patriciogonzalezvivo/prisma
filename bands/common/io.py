@@ -111,7 +111,6 @@ def write_pcl(filename, depth, rgb, flip=False):
         depth_max = depth.max()
         depth = (depth - depth_min) / (depth_max - depth_min)
         depth = 1.0-depth
-
         depth = depth_min + depth * (depth_max - depth_min)
 
     intrinsic = [1000.0, 1000.0, rgb.shape[1]/2, rgb.shape[0]/2]
