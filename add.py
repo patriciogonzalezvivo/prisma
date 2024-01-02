@@ -58,7 +58,8 @@ if __name__ == '__main__':
 
         if args.rgbd != "none":
             extra_args="--rgbd " + args.rgbd
-            run("rgba", input_path, path_rgba, extra_args=extra_args)
+            
+        run("rgba", input_path, path_rgba, extra_args=extra_args)
 
         # Add metadata
         data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)

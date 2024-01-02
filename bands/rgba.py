@@ -35,8 +35,9 @@ def run(args):
     fps = int(args.fps)
 
     # use ffmpeg to change fps to 24
-    os.system("ffmpeg -y -i " + args.input + " -filter:v fps=fps=" + str(fps) + " -b:v 10M -maxrate:v 10M -bufsize:v 20M -codec:a copy " + args.tmp)
-    args.input = args.tmp
+    # os.system("ffmpeg -y -i " + args.input + " -filter:v fps=fps=" + str(fps) + " -b:v 10M -maxrate:v 10M -bufsize:v 20M -codec:a copy " + args.tmp)
+    # args.input = args.tmp
+    os.system("cp " + args.input + " " + args.tmp)
 
     in_video = decord.VideoReader(args.input)
     width = in_video[0].shape[1]

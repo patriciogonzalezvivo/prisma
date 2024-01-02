@@ -12,6 +12,8 @@ from common.io import create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
+from PIL import Image
+
 BAND = "depth_marigold"
 CHECKPOINT = "Bingxin/Marigold"
 DEVICE_CUDA = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -86,8 +88,6 @@ def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, proc
 
 def process_image(args):
     output_folder = os.path.dirname(args.output)
-
-    from PIL import Image
     in_image = Image.open(args.input).convert("RGB")
 
     prediction = infer(in_image, normalize=False)
