@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import json
 import argparse
 import os
 
@@ -22,7 +21,7 @@ import torch.nn.functional as F
 import warnings
 warnings.filterwarnings("ignore")
 
-from common.io import open_float_rgb, to_float_rgb, check_overwrite, create_folder, write_depth
+from common.io import to_float_rgb, check_overwrite, create_folder, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
@@ -65,22 +64,24 @@ def init_model():
 def infer(img, mode="r128", blr_mask=True, boundary=0, interpolation='bicubic', optimize=True, normalize=True):
     global model, transform
 
+
     if model == None:
         init_model()
 
-    img_resolution = (img.shape[1], img.shape[0])
+    img_float = to_float_rgb( img )
+    img_resolution = (img_float.shape[1], img_float.shape[0])
 
     RESOLUTION = (2160, 3840)
 
     # try to reduce resolution
-    if img.shape[0] <= 480 and img.shape[1] <= 640:
+    if img_float.shape[0] <= 480 and img_float.shape[1] <= 640:
         RESOLUTION = (480, 640)
-    elif img.shape[0] <= 1080 and img.shape[1] <= 1920:
+    elif img_float.shape[0] <= 1080 and img_float.shape[1] <= 1920:
         RESOLUTION = (1080, 1920)
 
     crop = (int(RESOLUTION[0] // 4), int(RESOLUTION[1] // 4))
 
-    img_t = F.interpolate(torch.tensor(img).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode=interpolation, align_corners=True)
+    img_t = F.interpolate(torch.tensor(img_float).unsqueeze(dim=0).permute(0, 3, 1, 2), RESOLUTION, mode=interpolation, align_corners=True)
     img_t = img_t.squeeze().permute(1, 2, 0)
 
     img_t = torch.tensor(img_t).unsqueeze(dim=0).permute(0, 3, 1, 2) # shape: 1, 3, h, w
@@ -107,6 +108,39 @@ def infer(img, mode="r128", blr_mask=True, boundary=0, interpolation='bicubic', 
     return cv2.resize(depth, img_resolution, interpolation=cv2.INTER_LINEAR)
 
 
+def process_image(args):
+    output_folder = os.path.dirname(args.output)
+
+    # LOAD resource 
+    from PIL import Image
+    in_image = Image.open(args.input).convert("RGB")
+
+    prediction = infer(in_image, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary )
+
+    if data:
+        depth_min = prediction.min().item()
+        depth_max = prediction.max().item()
+        data["bands"][BAND]["values"] = { 
+                                            "min" : {
+                                                    "value": depth_min, 
+                                                    "type": "float"
+                                            },
+                                            "max" : {
+                                                "value": depth_max,
+                                                "type": "float" 
+                                            }
+                                        }
+        
+    if args.npy:
+        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
+
+    if args.ply:
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image))
+
+    # Save depth
+    write_depth( args.output, prediction, flip=False, heatmap=True)
+
+
 def process_video(args):
     import decord
     from common.io import VideoWriter
@@ -129,7 +163,7 @@ def process_video(args):
 
     csv_files = []
     for i in tqdm( range(total_frames) ):
-        img = to_float_rgb( in_video[i].asnumpy() )
+        img = n_video[i].asnumpy()
 
         prediction = infer( img, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary)
 
@@ -174,46 +208,18 @@ def process_video(args):
                                             }
                                         }
 
-
-def process_image(args):
-    # LOAD resource 
-    in_image = open_float_rgb(args.input)
-    prediction = infer(in_image, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary )
-
-    if data:
-        depth_min = prediction.min().item()
-        depth_max = prediction.max().item()
-        data["bands"][BAND]["values"] = { 
-                                            "min" : {
-                                                    "value": depth_min, 
-                                                    "type": "float"
-                                            },
-                                            "max" : {
-                                                "value": depth_max,
-                                                "type": "float" 
-                                            }
-                                        }
-        
-    if args.npy:
-        output_folder = os.path.dirname(args.output)
-        np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
-
-    # Save depth
-    write_depth( args.output, prediction, flip=False, heatmap=True)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
+    parser.add_argument('--input', '-i', help="Input image/video", type=str, required=True)
+    parser.add_argument('--output', '-o', help="Output image/video", type=str, default="")
+    parser.add_argument('--npy' , '-n', help="Save numpy data", action='store_true')
+    parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
 
-    parser.add_argument('-npy' , '-n', help="Keep numpy data", action='store_true')
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
-
-    parser.add_argument('-mode', help="p16, p49, r128", type=str, default="r128")
-    parser.add_argument("-boundary", type=int, default=0)
-    parser.add_argument("-no_blur", action='store_true')
+    parser.add_argument('--mode', help="p16, p49, r128", type=str, default="r128")
+    parser.add_argument("--boundary", type=int, default=0)
+    parser.add_argument("--no_blur", action='store_true')
     args = parser.parse_args()
 
     # Try to load metadata
@@ -240,5 +246,4 @@ if __name__ == "__main__":
         process_image(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)

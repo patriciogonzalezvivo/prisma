@@ -1,7 +1,6 @@
 import argparse
 import cv2
 import os
-import json
 
 import warnings
 warnings.filterwarnings("ignore")

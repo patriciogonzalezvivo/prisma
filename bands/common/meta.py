@@ -25,10 +25,25 @@ def load_metadata(path):
 
 
 def create_metadata(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
-        write_metadata(path, { "bands": { } })
-    return load_metadata(path)
+    folder = path
+    if os.path.isfile( path ):
+        folder = os.path.dirname(path)
+
+    # Check if the output folder exists
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    metadata_path = get_metadata_path(path)
+    print(metadata_path)
+
+    if metadata_path:
+        print("ERROR: Cannot create metadata for {}".format(path))
+        metadata_path = os.path.join(folder, META_FILE)
+
+        with open( metadata_path, 'w') as metadata_file:
+            metadata_file.write( json.dumps({ "bands": { } }, indent=4) )
+        
+    return load_metadata(metadata_path)
 
 
 def is_video(path):
@@ -83,9 +98,10 @@ def add_band(metadata, band, url="", folder=""):
 
 
 def write_metadata(path, metadata):
-
-    if os.path.isdir( path ) and metadata is not None:
-        metadata_path = os.path.join( path, META_FILE)
-
+    if metadata == None:
+        return
+    
+    metadata_path = get_metadata_path(path)
+    if os.path.exists(metadata_path):
         with open( metadata_path, 'w') as metadata_file:
             metadata_file.write( json.dumps(metadata, indent=4) )

@@ -4,8 +4,7 @@ import argparse
 import decord
 from tqdm import tqdm
 
-from common.io import create_folder, write_rgba
-from common.io import VideoWriter
+from common.io import write_rgba, VideoWriter
 
 BAND = "rgba"
 
