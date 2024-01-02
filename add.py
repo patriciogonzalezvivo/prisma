@@ -23,7 +23,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input file", type=str, required=True)
     parser.add_argument('--output', help="folder name", type=str, default='')
-    parser.add_argument('--fps', '-r', help='fix framerate', type=float, default = 0)
+    parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
     parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
     parser.add_argument('--force', '-f', help='Force to run all bands', action='store_true')
     args = parser.parse_args()

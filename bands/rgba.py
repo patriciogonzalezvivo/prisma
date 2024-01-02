@@ -28,7 +28,7 @@ def prune(input_file, output_file, fps=24, subpath=""):
             write_rgba(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)
 
         out_video.write(curr_frame)
-    out_video.close()    
+    out_video.close()
 
 
 def run(args):

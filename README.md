@@ -21,14 +21,10 @@ conda env create -f environment.yml
 conda activate prisma
 sh download_models.sh
 
-# Install Detectron2
-python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
-
 # Install mmcv (for mmdetection)
 pip install -U openmim
 mim install mmengine
 mim install "mmcv-full==1.7.1"
-# pip install "mmsegmentation==0.30.0"
 ```
 
 ## Depth estimation (MiDAS 3.1)
