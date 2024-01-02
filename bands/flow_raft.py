@@ -201,12 +201,6 @@ if __name__ == '__main__':
     # Check if the output folder exists
     check_overwrite(args.output)
 
-    if os.path.isdir( args.input ):
-        input_payload = os.path.join( args.input, "payload.json")
-        if os.path.isfile(input_payload):
-            data = json.load( open(input_payload) )
-            args.input = os.path.join( args.input, data["bands"]["rgba"]["url"] )
-
     input_folder = os.path.dirname(args.input)
 
     if args.flo_subpath != '':

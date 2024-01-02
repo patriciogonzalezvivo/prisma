@@ -1,9 +1,8 @@
 import os
-import json
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
-from bands.common.meta import create_metadata, load_metadata, is_video, add_band, write_metadata
+from bands.common.meta import create_metadata, is_video, add_band, write_metadata
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -76,7 +75,7 @@ if __name__ == '__main__':
     write_metadata(folder_name, data)
     
     # 5. Extract bands
-    
+
     # Depth (MariGold)
     run("depth_marigold", folder_name)
 

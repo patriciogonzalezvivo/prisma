@@ -4,7 +4,6 @@
 import numpy as np
 import argparse
 import torch
-import json
 import os
 
 import warnings
