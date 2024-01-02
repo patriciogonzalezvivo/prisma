@@ -123,7 +123,7 @@ Citation
 
 ## Depth Estimation (Marigold)
 
-**Paper:** ![Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
+**Paper:** [Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
 
 **License:** [Apache](bands/marigold/LICENSE)
 
