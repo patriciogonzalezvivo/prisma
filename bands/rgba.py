@@ -73,14 +73,14 @@ def run(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-tmp', '-t', help="tmp", type=str, default="tmp.mp4")
-    parser.add_argument('-output', help="output", type=str, default="")
-    parser.add_argument('-subpath', '-d', help="subpath to frames", type=str, default='')
+    parser.add_argument('--input', '-i', help="input", type=str, required=True)
+    parser.add_argument('--tmp', '-t', help="tmp", type=str, default="tmp.mp4")
+    parser.add_argument('--output', help="output", type=str, default="")
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
     
-    parser.add_argument('-rgbd', help='Where the depth is', type=str, default='none')
-    parser.add_argument('-depth', help='in case of being a RGBD', type=str, default="depth.mp4")
-    parser.add_argument('-fps', '-r', help='fix framerate', type=float, default=24)
+    parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
+    parser.add_argument('--depth', help='in case of being a RGBD', type=str, default="depth.mp4")
+    parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
     args = parser.parse_args()
 
     input_path = args.input

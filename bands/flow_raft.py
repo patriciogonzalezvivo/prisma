@@ -173,14 +173,14 @@ def runVideo(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-input', '-i', help="input", type=str, required=True)
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-model', '-m', help="model path", type=str, default=MODEL)
-    parser.add_argument('-iterations', help="number of iterations", type=int, default=ITERATIONS)
-    parser.add_argument('-flo_subpath', '-f', help="path to flo files", type=str, default='')
-    parser.add_argument('-ds_subpath', '-d', help="path to flo files", type=str, default='')
-    parser.add_argument('-vis_subpath', '-v', help="path to flo files", type=str, default='')
-    parser.add_argument('-backwards','-b',  help="Backward video", action='store_true')
+    parser.add_argument('--input', '-i', help="input", type=str, required=True)
+    parser.add_argument('--output', '-o', help="output", type=str, default="")
+    parser.add_argument('--model', '-m', help="model path", type=str, default=MODEL)
+    parser.add_argument('--iterations', help="number of iterations", type=int, default=ITERATIONS)
+    parser.add_argument('--flo_subpath', '-f', help="path to flo files", type=str, default='')
+    parser.add_argument('--ds_subpath', '-d', help="path to flo files", type=str, default='')
+    parser.add_argument('--vis_subpath', '-v', help="path to flo files", type=str, default='')
+    parser.add_argument('--backwards','-b',  help="Backward video", action='store_true')
 
     parser.add_argument('--scale', type=float, default=0.75)
     parser.add_argument('--raft_model', default='models/raft-things.pth', help="[RAFT] restore checkpoint")

@@ -164,10 +164,10 @@ def process_video(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-input', '-i', help="input image", type=str, required=True)
-    parser.add_argument('-mask', '-m', help="input mask", type=str, default="")
-    parser.add_argument('-output', '-o', help="output", type=str, default="")
-    parser.add_argument('-resolution', '-r', help="resolution", type=int, default=512)
+    parser.add_argument('--input', '-i', help="input image", type=str, required=True)
+    parser.add_argument('--mask', '-m', help="input mask", type=str, default="")
+    parser.add_argument('--output', '-o', help="output", type=str, default="")
+    parser.add_argument('--resolution', '-r', help="resolution", type=int, default=512)
 
     args = parser.parse_args()
 
