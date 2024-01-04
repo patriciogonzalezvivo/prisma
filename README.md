@@ -1,8 +1,8 @@
-![prisma](https://github.com/patriciogonzalezvivo/prisma/assets/346914/e268e0c5-ce0e-4988-bda8-fcd136a7876f)
+![_prisma_](https://github.com/patriciogonzalezvivo/prisma/assets/346914/0a468415-5a19-4993-a9ff-e8ee867fc629)
 
 # PRISMA
 
-Small framework to infer different types of data (aka: "bands") from a single image/video. 
+Framework for performing multiple inferences ("bands") from images and videos. 
 It's a combination of open sourced models to infer:
 
     * depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
