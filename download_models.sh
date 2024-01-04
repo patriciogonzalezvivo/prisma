@@ -13,9 +13,4 @@ wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/sol
 wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/solov2/solov2_r50_fpn_3x_coco.py
 wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/solov2/solov2_r50_fpn_1x_coco.py
 
-# FcF-Inpainting
-wget https://shi-labs.com/projects/fcf-inpainting/places_512.pkl
-# wget https://shi-labs.com/projects/fcf-inpainting/places.pkl
-# wget https://shi-labs.com/projects/fcf-inpainting/celeba-hq.pkl
-
 cd ..
