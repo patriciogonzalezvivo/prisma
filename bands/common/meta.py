@@ -2,7 +2,7 @@ import os
 import json
 from .io import check_overwrite
 
-META_FILE = "payload.json"
+META_FILE = "metadata.json"
 
 def get_metadata_path(path):
     if os.path.isfile( path ):

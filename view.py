@@ -3,7 +3,6 @@
 
 import os
 import cv2
-import json
 import argparse
 import re
 
@@ -14,6 +13,7 @@ import numpy as np
 import decord
 from tqdm import tqdm
 from bands.common.colmap import read_model
+from bands.common.meta import load_metadata
 
 DEPTH_IMAGE_SCALING: Final = 1e4
 
@@ -84,11 +84,8 @@ def add_band(data, name, values, path="bands/textures/"):
         frame_idx += 1
 
 
-def init(data):
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
+def init(args):
+    data = load_metadata(args.input)
 
     rr.log_view_coordinates("bands", up="-Y", timeless=True)
             

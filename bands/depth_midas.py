@@ -1,30 +1,17 @@
 import numpy as np
 import torch
-import cv2
 import argparse
 import os
 
 import warnings
 warnings.filterwarnings("ignore")
 
-# MiDAS v3.1 
-# https://github.com/isl-org/MiDaS
-from midas.transforms import Resize, NormalizeImage, PrepareForNet
-from midas.model_loader import load_model
-from torchvision.transforms import Compose
-
-from common.io import create_folder, to_float_rgb, check_overwrite, write_depth, write_pcl
+from common.io import create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
 BAND = "depth_midas"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
-MODEL = 'models/dpt_beit_large_512.pt'
-WIDTH = int(1280)
-HEIGHT = int(720)
-
-# Limit for the GPU (NVIDIA RTX 2080), can be adjusted 
-GPU_threshold = 1600 - 32 
 
 device = None
 model = None
@@ -33,68 +20,41 @@ data = None
 
 
 # Load MiDAS v3.1 
-def init_model(optimize=True):
+def init_model(model_version="midas3"):
     global model, device, transform
     device = torch.device( DEVICE )
-    model, transform, net_w, net_h = load_model(device, MODEL, "dpt_beit_large_512", optimize, False, False)
 
-    resize_mode = "minimal"
-    normalization = NormalizeImage(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    if model_version == "midas2":
+        model = torch.hub.load("intel-isl/MiDaS", 'MiDaS')
+    else:
+        model = torch.hub.load("intel-isl/MiDaS", 'DPT_Large')
 
-    msize = 512
-    if msize > GPU_threshold:
-        msize = GPU_threshold
-    net_w = net_h = msize
-
-    transform = Compose(
-        [
-            Resize(
-                net_w,
-                net_h,
-                resize_target=None,
-                keep_aspect_ratio=True,
-                ensure_multiple_of=32,
-                resize_method=resize_mode,
-                image_interpolation_method=cv2.INTER_CUBIC,
-            ),
-            normalization,
-            PrepareForNet(),
-        ]
-    )
-
-    model.eval()
-    if optimize==True and device == torch.device("cuda"):
-        model = model.to(memory_format=torch.channels_last)  
-        model = model.half()
+    transform = torch.hub.load("intel-isl/MiDaS", "transforms").default_transform
 
     model.to(device)
+    model.eval()
     return model
 
 
-def infer(img, optimize=True, normalize=False):
+def infer(img, model_version, normalize=False):
     global model, device, transform
 
     if model == None:
-        init_model(optimize)
+        init_model(model_version)
 
-    img_float = to_float_rgb( img )
-    img_input = transform( {"image": img_float} )["image"]
+    img = np.array(img)
+    img_input = transform(img).to(device)
     with torch.no_grad():
-        sample = torch.from_numpy(img_input).to(device).unsqueeze(0)
-        if optimize==True and device==torch.device("cuda"):
-            sample = sample.to(memory_format=torch.channels_last)  
-            sample = sample.half()
-        prediction = model.forward(sample)
+        prediction = model.forward(img_input)
         prediction = torch.nn.functional.interpolate(
                         prediction.unsqueeze(1),
-                        size=img_float.shape[:2],
+                        size=img.shape[:2],
                         mode="bicubic",
                         align_corners=True
                     ).squeeze()
     prediction = prediction.cpu().numpy().astype(np.float32)
         
     if normalize:
-
         # Normalization
         depth_min = prediction.min()
         depth_max = prediction.max()
@@ -111,7 +71,7 @@ def process_image(args):
     in_image = Image.open(args.input).convert("RGB")
     output_folder = os.path.dirname(args.output)
 
-    prediction = infer(in_image, optimize=args.optimize, normalize=False)
+    prediction = infer(in_image, model_version=args.model, normalize=False)
     prediction = prediction.astype(np.float32)
 
     if data:
@@ -162,7 +122,7 @@ def process_video(args):
     for i in tqdm( range(total_frames) ):
 
         img = in_video[i].asnumpy()
-        prediction = infer(img, optimize=args.optimize, normalize=False)
+        prediction = infer(img, model_version=args.model, normalize=False)
 
         if args.npy:
             if args.subpath != '':
@@ -216,10 +176,7 @@ if __name__ == "__main__":
     parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
     parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
 
-    parser.add_argument('--model', help="model path", type=str, default=MODEL)
-    parser.add_argument('--optimize', dest='optimize', action='store_true')
-    parser.add_argument('--no-optimize', dest='optimize', action='store_false')
-    parser.set_defaults(optimize=True)
+    parser.add_argument('--model', type=str, choices=["midas2", "midas3"], default="midas3")
 
     args = parser.parse_args()
 
@@ -239,7 +196,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = True
 
     # Load MiDAS v3.1
-    init_model(args.optimize)
+    init_model(args.model)
 
     # compute depth maps
     if is_video(args.output):

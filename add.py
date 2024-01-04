@@ -78,10 +78,13 @@ if __name__ == '__main__':
     # 5. Extract bands
 
     # Depth (MariGold)
-    run("depth_marigold", folder_name)
+    run("depth_marigold", folder_name, extra_args="--ply")
 
     # Depth HUE (ZoeDepth w MiDAS v2.1)
-    run("depth_zoe", folder_name)
+    run("depth_zoe", folder_name, extra_args="--ply")
+
+    # Midas v3.1
+    run("depth_midas", folder_name, extra_args="--ply")
 
     # Mask (mmdet)
     run("mask_mmdet",  folder_name, extra_args="--sdf")
@@ -95,13 +98,10 @@ if __name__ == '__main__':
 
     else:        
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_fusion", folder_name)
+        run("depth_fusion", folder_name, extra_args="--ply")
 
         # Mask inpainting
         run("inpaint_fcfgan", folder_name)
-
-        # scale
-        run("scale_realesrgan", folder_name)
 
 
         

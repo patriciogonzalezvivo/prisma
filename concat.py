@@ -3,8 +3,9 @@
 
 import os
 import cv2
-import json
 import argparse
+
+from bands.common.meta import load_metadata
 
 top = ['rgba_scaledx2']
 bottom = ['mask', 'depth_fusion']
@@ -23,36 +24,33 @@ if __name__ == '__main__':
     if args.bottom:
         bottom = args.bottom
 
-    if os.path.isdir( args.input ):
-        payload_path = os.path.join( args.input, "payload.json")
-        if os.path.isfile(payload_path):
-            data = json.load( open(payload_path) )
+    data = load_metadata(args.input)
+    if data:
+        top_row = None
+        bottom_row = None
 
-            top_row = None
-            bottom_row = None
-
-            # vertically concatenate the top row
-            for band in top:
-                img = cv2.imread( os.path.join( args.input, data["bands"][band]["url"] ) )
-                if top_row is None:
-                    top_row = img
-                else:
-                    top_row = cv2.hconcat([top_row, img])
-            
-            # vertically concatenate the bottom row
-            for band in bottom:
-                img = cv2.imread( os.path.join( args.input, data["bands"][band]["url"] ) )
-                if bottom_row is None:
-                    bottom_row = img
-                else:
-                    bottom_row = cv2.hconcat([bottom_row, img])
-            
-            # horizontally concatenate the top and bottom rows
+        # vertically concatenate the top row
+        for band in top:
+            img = cv2.imread( os.path.join( args.input, data["bands"][band]["url"] ) )
             if top_row is None:
-                conc = bottom_row
-            elif bottom_row is None:
-                conc = top_row
+                top_row = img
             else:
-                conc = cv2.vconcat([top_row, bottom_row])
+                top_row = cv2.hconcat([top_row, img])
+        
+        # vertically concatenate the bottom row
+        for band in bottom:
+            img = cv2.imread( os.path.join( args.input, data["bands"][band]["url"] ) )
+            if bottom_row is None:
+                bottom_row = img
+            else:
+                bottom_row = cv2.hconcat([bottom_row, img])
+        
+        # horizontally concatenate the top and bottom rows
+        if top_row is None:
+            conc = bottom_row
+        elif bottom_row is None:
+            conc = top_row
+        else:
+            conc = cv2.vconcat([top_row, bottom_row])
 
-            cv2.imwrite(args.output, conc)
+        cv2.imwrite(args.output, conc)

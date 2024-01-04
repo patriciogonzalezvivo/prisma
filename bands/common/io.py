@@ -40,6 +40,12 @@ def open_float_rgb(path):
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+
+def open_rgb(path):
+    img = cv2.imread(path)
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
 
 def to_float_rgb(image):
