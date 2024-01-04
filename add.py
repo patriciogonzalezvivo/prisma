@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
     else:
         data["width"], data["height"] = get_image_size(path_rgba)
-        
+
     write_metadata(folder_name, data)
     
     # 5. Extract bands
@@ -96,9 +96,6 @@ if __name__ == '__main__':
     else:        
         # Depth (PatchFusion w ZoeDepth)
         run("depth_fusion", folder_name, extra_args="--ply")
-
-        # Mask inpainting
-        run("inpaint_fcfgan", folder_name)
 
 
         
