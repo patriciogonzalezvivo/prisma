@@ -22,7 +22,6 @@ dependencies:
   - pip:
     - accelerate==0.25.0
     - av==11.0.0
-    - basicsr==1.4.2
     - cython==0.29.33
     - decord==0.6.0
     - diffusers==0.24.0
