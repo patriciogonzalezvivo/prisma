@@ -7,9 +7,7 @@ It's a combination of open sourced models to infer:
 
     * depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
     * optical flow (RAFT)
-    * segmentation (mmdet, detectron2, mediapipe)
-    * inpainting (FcfGAN)
-    * super resolution (RealSrGAN)
+    * segmentation (mmdet)
 
 Each image or video will become a folder where all the derived bands will be stored together with a `meta.json` that keep tracks of the associated data.
 
@@ -191,47 +189,3 @@ Citation:
     year={2019}
 }
 ```
-
-
-## FcF-Inpainting
-
-**Paper:** [eys to Better Image Inpainting: Structure and Texture Go Hand in Hand](https://praeclarumjj3.github.io/fcf-inpainting/)
-
-**Code Repo:** [SHI-Labs/FcF-Inpainting](https://github.com/SHI-Labs/FcF-Inpainting)
-
-**License:** [Apaches](https://github.com/SHI-Labs/FcF-Inpainting/blob/main/LICENSE)
-
-**Use:**
-
-```Shell
-inpaint_fcfgan.py -input <IMAGE/VIDEO> -mask <IMAGE/VIDEO> -output <IMAGE/VIDEO> 
-```
-
-Citation:
-
-```
-@inproceedings{jain2022keys,
-    title={Keys to Better Image Inpainting: Structure and Texture Go Hand in Hand},
-    author={Jitesh Jain and Yuqian Zhou and Ning Yu and Humphrey Shi},
-    booktitle={WACV},
-    year={2023}
-} 
-```
-
-
-## Super Resolution
-
-**Code Repo:** [xinntao/Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
-
-**License:** [BSD](bands/realesrgan/LICENSE)
-
-Citation:
-```
-@InProceedings{wang2021realesrgan,
-    author    = {Xintao Wang and Liangbin Xie and Chao Dong and Ying Shan},
-    title     = {Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data},
-    booktitle = {International Conference on Computer Vision Workshops (ICCVW)},
-    date      = {2021}
-}
-```
-
