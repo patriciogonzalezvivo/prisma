@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.append('raft')
 
-import json
 import argparse
 
 import numpy as np
@@ -22,26 +21,36 @@ from raft.utils.utils import InputPadder
 from raft.utils.frame_utils import write_flow
 
 from common.io import VideoWriter, check_overwrite
-from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.meta import load_metadata, get_target, write_metadata, get_url
 from common.encode import process_flow, encode_flow
 
 BAND = "flow"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 ITERATIONS = 20
 MODEL = 'models/raft-things.pth'
+
+
 data = None
+model = None
+
+
+def init_model(args):
+    global model, device
+    
+    # load model
+    model = torch.nn.DataParallel(RAFT(args))
+    model.load_state_dict( torch.load( args.model ) )
+    model = model.module
+    model.to(DEVICE)
+    model.eval()
+    
+    return model
 
 
 def load_image(image):
     img = np.array(image)
     img = torch.from_numpy(img).permute(2, 0, 1).float()
     return img[None].to(DEVICE)
-
-
-def force_cudnn_initialization():
-    s = 32
-    dev = torch.device('cuda')
-    torch.nn.functional.conv2d(torch.zeros(s, s, s, s, device=dev), torch.zeros(s, s, s, s, device=dev))
 
 
 def warp_flow(img, flow):
@@ -69,27 +78,21 @@ def compute_fwdbwd_mask(fwd_flow, bwd_flow, alpha_1=0.05, alpha_2=0.5):
     return fwd_mask, bwd_mask
 
 
-def runVideo(args):
-    # load model
-    print("Open RAFT Data pipeline")
-    model = torch.nn.DataParallel(RAFT(args))
-    print("load model " + MODEL + " on " + DEVICE)
-    model.load_state_dict( torch.load( args.model ) )
-    model = model.module
-    model.to(DEVICE)
-    model.eval()
+def process_video(args):
+    global model
     
     # load video
+    output_basename = args.output.rsplit( ".", 1 )[ 0 ]
     in_video = decord.VideoReader(args.input)
     width = in_video[0].shape[1]
     height = in_video[0].shape[0]
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
     
-    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output +'.mp4' )
+    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
 
     if args.backwards:
-        out_bk_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output +'_bwd.mp4' )
+        out_bk_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_basename +'_bwd.mp4' )
 
     max_disps = []
 
@@ -149,7 +152,7 @@ def runVideo(args):
         out_bk_video.close()
 
     # Save max disatances per frame as a CSV file
-    csv_dist = open( args.output +'.csv' , 'w')
+    csv_dist = open( output_basename +'.csv' , 'w')
     for e in max_disps:
         csv_dist.write( '{}\n'.format(e) )
     csv_dist.close()
@@ -196,7 +199,7 @@ if __name__ == '__main__':
         # IF the input is a PRISMA folder it can use the metadata defaults
         print("PRISMA metadata found and loaded")
         args.input = get_url(args.input, data, "rgba")
-        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
+        args.output = get_target(args.input, data, band=BAND, target=args.output)
 
     # Check if the output folder exists
     check_overwrite(args.output)
@@ -217,10 +220,13 @@ if __name__ == '__main__':
         args.vis_subpath = os.path.join(input_folder, args.vis_subpath)
         os.makedirs(args.vis_subpath + "_fwd", exist_ok=True)
         os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
+
+    # init model
+    init_model(args)
     
-    runVideo(args)
+    # compute optical flow
+    process_video(args)
 
     # save metadata
-    if data:
-        write_metadata(args.input, data)
+    write_metadata(args.input, data)
 

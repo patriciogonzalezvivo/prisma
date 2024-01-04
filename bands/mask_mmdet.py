@@ -55,7 +55,52 @@ def getMaskRGB(result, category, index):
     return np.stack([masks] * 3, axis=-1)
 
 
-def runVideo(args):
+def process_image(args):
+    global model, device
+
+    # Export properties
+    output_folder = os.path.dirname(args.output)
+    output_filename = os.path.basename(args.output)
+    output_basename = output_filename.rsplit(".", 1)[0]
+    output_extension = output_filename.rsplit(".", 1)[1]
+
+    sdf_filename = output_basename + "_sdf." + output_extension
+    sdf_path = output_folder + "/" + sdf_filename
+    
+    img = cv2.imread(args.input)
+
+    # run the inferance
+    result = inference_detector(model, img)
+    masks = np.zeros(img.shape)
+
+    total_categories = len(result[0])
+    for c in range(total_categories):
+        category = model.CLASSES[c]
+        total_masks = getTotalMasks(result, c)
+        
+        for i in range(total_masks):
+            mask = getMaskRGB(result, c, i)
+            if category in CLASSES:
+                masks = masks + mask
+        
+    # Mask
+    cv2.imwrite(args.output, masks.astype(np.uint8))
+    data["bands"][BAND] = { }
+    data["bands"][BAND]["url"] = output_filename
+    data["bands"][BAND]["ids"] = CLASSES
+
+    # SDF
+    if args.sdf:
+        mask = snowy.rgb_to_luminance( snowy.extract_rgb(masks) )
+        sdf = snowy.generate_sdf(mask != 0.0)
+        sdf = (sdf + 127.0) / 255.0
+        sdf = (sdf - 0.25) * 2.0
+        snowy.export(sdf, sdf_path)
+        data["bands"][BAND + "_sdf"] = { }
+        data["bands"][BAND + "_sdf"]["url"] = sdf_filename
+
+
+def process_video(args):
     global model, device
 
     import decord
@@ -144,51 +189,6 @@ def runVideo(args):
         data["bands"][BAND + "_sdf"]["url"] = sdf_filename
 
 
-def runImage(args):
-    global model, device
-
-    # Export properties
-    output_folder = os.path.dirname(args.output)
-    output_filename = os.path.basename(args.output)
-    output_basename = output_filename.rsplit(".", 1)[0]
-    output_extension = output_filename.rsplit(".", 1)[1]
-
-    sdf_filename = output_basename + "_sdf." + output_extension
-    sdf_path = output_folder + "/" + sdf_filename
-    
-    img = cv2.imread(args.input)
-
-    # run the inferance
-    result = inference_detector(model, img)
-    masks = np.zeros(img.shape)
-
-    total_categories = len(result[0])
-    for c in range(total_categories):
-        category = model.CLASSES[c]
-        total_masks = getTotalMasks(result, c)
-        
-        for i in range(total_masks):
-            mask = getMaskRGB(result, c, i)
-            if category in CLASSES:
-                masks = masks + mask
-        
-    # Mask
-    cv2.imwrite(args.output, masks.astype(np.uint8))
-    data["bands"][BAND] = { }
-    data["bands"][BAND]["url"] = output_filename
-    data["bands"][BAND]["ids"] = CLASSES
-
-    # SDF
-    if args.sdf:
-        mask = snowy.rgb_to_luminance( snowy.extract_rgb(masks) )
-        sdf = snowy.generate_sdf(mask != 0.0)
-        sdf = (sdf + 127.0) / 255.0
-        sdf = (sdf - 0.25) * 2.0
-        snowy.export(sdf, sdf_path)
-        data["bands"][BAND + "_sdf"] = { }
-        data["bands"][BAND + "_sdf"]["url"] = sdf_filename
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -218,9 +218,9 @@ if __name__ == "__main__":
 
     # compute depth maps
     if is_video(args.output):
-        runVideo(args)
+        process_video(args)
     else:
-        runImage(args)
+        process_image(args)
 
     # save metadata
     if data:
