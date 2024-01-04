@@ -91,7 +91,7 @@ def process_image(args):
         np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
 
     if args.ply:
-        write_pcl( os.path.join(output_folder, BAND + '.ply'), 1.0 + prediction * 0.01, np.array(in_image), flip=True)
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image), flip=True)
 
     # Save depth
     write_depth( args.output, prediction, normalize=True, flip=True, heatmap=True)

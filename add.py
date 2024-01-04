@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('--input', '-i', help="input file", type=str, required=True)
     parser.add_argument('--output', help="folder name", type=str, default='')
     parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
-    parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
+    parser.add_argument('--rgbd', help='Where the depth is', type=str, default=None)
     parser.add_argument('--force', '-f', help='Force to run all bands', action='store_true')
     args = parser.parse_args()
 
@@ -50,29 +50,26 @@ if __name__ == '__main__':
     name_rgba = "rgba." + data["ext"]
     path_rgba = os.path.join(folder_name, name_rgba)
     
+    # 3. Extract RGBA (only if doesn't exist)
     add_band(data, "rgba", url=name_rgba)
 
-    # 3. Extract RGBA (only if doesn't exist)
+    extra_args = ""
+    if args.rgbd:
+        extra_args += "--rgbd " + args.rgbd
+
     if is_video(input_path):
-        extra_args = "-d images --fps " + str(args.fps)
+        extra_args += " -d images --fps " + str(args.fps)
 
-        if args.rgbd != "none":
-            extra_args="--rgbd " + args.rgbd
+    run("rgba", input_path, path_rgba, extra_args=extra_args)
 
-        run("rgba", input_path, path_rgba, extra_args=extra_args)
-
-        # Add metadata
+    # 4. Add metadata
+    if is_video(input_path):
         data["width"],  data["height"], data["fps"], data["frames"] = get_video_data(path_rgba)
         data["duration"] = float(data["frames"]) / float(data["fps"])
 
     else:
-        input_extension = "png"
-        cmd = "cp " + input_path + " " + path_rgba
-        os.system(cmd)
-
-        # Add metadata
         data["width"], data["height"] = get_image_size(path_rgba)
-
+        
     write_metadata(folder_name, data)
     
     # 5. Extract bands
@@ -87,7 +84,7 @@ if __name__ == '__main__':
     run("depth_midas", folder_name, extra_args="--ply")
 
     # Mask (mmdet)
-    run("mask_mmdet",  folder_name, extra_args="--sdf")
+    run("mask_mmdet", folder_name, extra_args="--sdf")
 
     if is_video(input_path):
         # Depth (PatchFusion w ZoeDepth)

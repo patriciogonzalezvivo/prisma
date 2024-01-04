@@ -4,9 +4,12 @@ import argparse
 import decord
 from tqdm import tqdm
 
-from common.io import write_rgba, VideoWriter
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.io import open_rgb, open_float_rgb, check_overwrite, write_rgb, write_rgb_square,  VideoWriter
 
 BAND = "rgba"
+
+data = None
 
 def split(input_file, output_file, fps, total_frames, width, height, split):
     print("TODO")
@@ -25,13 +28,24 @@ def prune(input_file, output_file, fps=24, subpath=""):
         curr_frame = in_video[i].asnumpy()
 
         if subpath != '':
-            write_rgba(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)
+            write_rgb(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)
 
         out_video.write(curr_frame)
     out_video.close()
 
 
-def run(args):
+def process_image(args):
+    os.system("cp " + args.input + " " + args.output)
+
+    image = open_float_rgb(args.input)
+
+    output_basename = args.output.rsplit( ".", 1 )[ 0 ]
+    output_extension = args.output.rsplit( ".", 1 )[ 1 ]
+
+    write_rgb_square(output_basename + "_square." + output_extension, image)
+
+
+def process_video(args):
     fps = int(args.fps)
 
     # use ffmpeg to change fps to 24
@@ -80,19 +94,34 @@ if __name__ == '__main__':
     parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
     
     parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
-    parser.add_argument('--depth', help='in case of being a RGBD', type=str, default="depth.mp4")
-    parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
+    parser.add_argument('--depth', help='in case of being a RGBD', type=str, default="depth")
+    parser.add_argument('--fps', '-r', help='fix framerate of videos', type=float, default=24)
     args = parser.parse_args()
 
-    input_path = args.input
-    input_folder = os.path.dirname(input_path)
-    input_filename = os.path.basename(input_path)
-    input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
-    input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-    input_video = input_extension == "mp4"
+    # Try to load metadata
+    data = load_metadata(args.input)
+    if data:
+        # IF the input is a PRISMA folder it can use the metadata defaults
+        print("PRISMA metadata found and loaded")
+        args.input = get_url(args.input, data, "rgba")
+        args.output = get_target(args.input, data, band=BAND, target=args.output)
+        if args.rgbd:
+            args.depth = get_target(args.input, data, band='depth', target=args.depth)
+    else:
+        input_extension = args.input.rsplit( ".", 1 )[ 1 ]
+        if os.path.isdir( args.output ):
+            args.output = os.path.join(args.output, BAND + "." + input_extension)
+        args.depth = os.path.join(os.path.dirname(args.output), args.depth + "." + input_extension)
 
-    if os.path.isdir( args.output ):
-        args.output = os.path.join(args.output, BAND + ".mp4")
-    args.depth = os.path.join(os.path.dirname(args.output), args.depth)
-    
-    run(args)
+    # Check if the output folder exists
+    check_overwrite(args.output)
+    if args.rgbd:
+        check_overwrite(args.depth)
+
+    if is_video(args.input):
+        process_video(args)
+    else:
+        process_image(args)
+
+    # save metadata
+    write_metadata(args.input, data)

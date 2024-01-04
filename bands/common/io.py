@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from .encode import heat_to_rgb
-from .pcl import reconstruct_pcd, save_point_cloud
+from .pcl import create_point_cloud, save_point_cloud
 
 def create_folder(dir):
     if not os.path.exists(dir):
@@ -29,6 +29,7 @@ def get_image_size(path):
     img = cv2.imread(path)
     return img.shape[1], img.shape[0]
 
+
 def get_video_data(path):
     import decord
     video = decord.VideoReader(path)
@@ -40,6 +41,7 @@ def open_float_rgb(path):
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+
 
 def open_rgb(path):
     img = cv2.imread(path)
@@ -55,8 +57,22 @@ def to_float_rgb(image):
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
 
-def write_rgba(path, rgba):
+def write_rgb(path, rgba):
     cv2.imwrite(path, (rgba * 255).astype(np.uint8))
+
+
+# Make image squared of a specific resolution by adding padding into the smaller side 
+def write_rgb_square(path, rgba, resolution=1024):
+    if rgba.shape[0] > rgba.shape[1]:
+        pad = (rgba.shape[0] - rgba.shape[1]) // 2
+        rgba = np.pad(rgba, ((0, 0), (pad, pad), (0, 0)), mode='constant', constant_values=0)
+        
+    elif rgba.shape[0] < rgba.shape[1]:
+        pad = (rgba.shape[1] - rgba.shape[0]) // 2
+        rgba = np.pad(rgba, ((pad, pad), (0, 0), (0, 0)), mode='constant', constant_values=0)
+
+    rgba = cv2.resize(rgba, (resolution, resolution), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(path, cv2.cvtColor((rgba * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
 
 def write_depth(path, depth, normalize=True, flip=True, heatmap=False):
@@ -120,9 +136,8 @@ def write_pcl(filename, depth, rgb, flip=False):
 
         depth = depth_min + depth * (depth_max - depth_min)
 
-    intrinsic = [1000.0, 1000.0, rgb.shape[1]/2, rgb.shape[0]/2]
-    pcd = reconstruct_pcd(depth, intrinsic[0], intrinsic[1], intrinsic[2], intrinsic[3])
-    save_point_cloud(pcd.reshape((-1, 3)), rgb.reshape(-1, 3), filename)
+    pcl = create_point_cloud(depth, rgb.shape[1]/2, rgb.shape[0]/2)
+    save_point_cloud(pcl.reshape((-1, 3)), rgb.reshape(-1, 3), filename)
 
 
 def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p", crf=15):
@@ -150,7 +165,7 @@ def extract_frames(filename, folder=".", fps=24):
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_file)
     for i in tqdm( range(total_frames) ):
         curr_frame = in_video[i].asnumpy()
-        write_rgba(output_file, curr_frame)
+        write_rgb(output_file, curr_frame)
         out_video.write(curr_frame)
     out_video.close()
 

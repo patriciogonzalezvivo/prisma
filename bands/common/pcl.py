@@ -2,88 +2,46 @@ import cv2
 import numpy as np
 from plyfile import PlyData, PlyElement
 
+def create_point_cloud(depth, u0, v0, fx=1000.0, fy=1000.0):
+    depth_blured = cv2.medianBlur(depth, 5)
 
-def get_pcd_base(H, W, u0, v0, fx, fy):
+    H, W = depth_blured.shape
     x_row = np.arange(0, W)
     x = np.tile(x_row, (H, 1))
     x = x.astype(np.float32)
-    u_m_u0 = x - u0
+    u = x - u0
 
-    y_col = np.arange(0, H)  # y_col = np.arange(0, height)
+    y_col = np.arange(0, H)
     y = np.tile(y_col, (W, 1)).T
     y = y.astype(np.float32)
-    v_m_v0 = y - v0
+    v = y - v0
 
-    x = u_m_u0 / fx
-    y = v_m_v0 / fy
+    x = u / fx
+    y = v / fy
     z = np.ones_like(x)
-    pw = np.stack([x, y, z], axis=2)  # [h, w, c]
-    return pw
+    pcl = np.stack([x, y, z], axis=2)
+
+    return depth_blured[:, :, None] * -pcl
 
 
-def reconstruct_pcd(depth, fx, fy, u0, v0, pcd_base=None, mask=None):
-    depth_blured = cv2.medianBlur(depth, 5)
+def save_point_cloud(pcl, rgb, filename, binary=True):
+    assert pcl.shape[0] == rgb.shape[0]
 
-    if pcd_base is None:
-        H, W = depth_blured.shape
-        pcd_base = get_pcd_base(H, W, u0, v0, fx, fy)
-
-    pcd = depth_blured[:, :, None] * pcd_base
-    
-    if mask:
-        pcd[mask] = 0
-    
-    return pcd
-
-
-def save_point_cloud(pcd, rgb, filename, binary=True):
-    """Save an RGB point cloud as a PLY file.
-    :paras
-        @pcd: Nx3 matrix, the XYZ coordinates
-        @rgb: Nx3 matrix, the rgb colors for each 3D point
-    """
-    assert pcd.shape[0] == rgb.shape[0]
-
-    if rgb is None:
-        gray_concat = np.tile(np.array([128], dtype=np.uint8),
-                              (pcd.shape[0], 3))
-        points_3d = np.hstack((pcd, gray_concat))
-    else:
-        points_3d = np.hstack((pcd, rgb))
+    points_3d = np.hstack((pcl, rgb))
     python_types = (float, float, float, int, int, int)
-    npy_types = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'), ('red', 'u1'),
-                 ('green', 'u1'), ('blue', 'u1')]
-    if binary is True:
-        # Format into Numpy structured array
-        vertices = []
-        for row_idx in range(points_3d.shape[0]):
-            cur_point = points_3d[row_idx]
-            vertices.append(
-                tuple(
-                    dtype(point)
-                    for dtype, point in zip(python_types, cur_point)))
-        vertices_array = np.array(vertices, dtype=npy_types)
-        el = PlyElement.describe(vertices_array, 'vertex')
+    npy_types = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'), 
+                 ('red', 'u1'), ('green', 'u1'), ('blue', 'u1')]
 
-        # write
-        PlyData([el]).write(filename)
-    else:
-        x = np.squeeze(points_3d[:, 0])
-        y = np.squeeze(points_3d[:, 1])
-        z = np.squeeze(points_3d[:, 2])
-        r = np.squeeze(points_3d[:, 3])
-        g = np.squeeze(points_3d[:, 4])
-        b = np.squeeze(points_3d[:, 5])
+    # Format into Numpy structured array
+    vertices = []
+    for row_idx in range(points_3d.shape[0]):
+        cur_point = points_3d[row_idx]
+        vertices.append(
+            tuple(
+                dtype(point)
+                for dtype, point in zip(python_types, cur_point)))
+    vertices_array = np.array(vertices, dtype=npy_types)
+    el = PlyElement.describe(vertices_array, 'vertex')
 
-        ply_head = 'ply\n' \
-                    'format ascii 1.0\n' \
-                    'element vertex %d\n' \
-                    'property float x\n' \
-                    'property float y\n' \
-                    'property float z\n' \
-                    'property uchar red\n' \
-                    'property uchar green\n' \
-                    'property uchar blue\n' \
-                    'end_header' % r.shape[0]
-        # ---- Save ply data to disk
-        np.savetxt(filename, np.column_stack[x, y, z, r, g, b], fmt='%f %f %f %d %d %d', header=ply_head, comments='')
+    # write
+    PlyData([el], text=(not binary)).write(filename)
