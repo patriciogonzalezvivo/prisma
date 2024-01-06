@@ -19,9 +19,9 @@ def create_point_cloud(depth, u0, v0, fx=1000.0, fy=1000.0):
     x = u / fx
     y = v / fy
     z = np.ones_like(x)
-    pcl = np.stack([x, y, z], axis=2)
+    pcl = np.stack([x, -y, -z], axis=2)
 
-    return depth_blured[:, :, None] * -pcl
+    return depth_blured[:, :, None] * pcl
 
 
 def save_point_cloud(pcl, rgb, filename, binary=True):

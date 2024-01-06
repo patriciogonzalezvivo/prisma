@@ -37,12 +37,12 @@ def prune(input_file, output_file, fps=24, subpath=""):
 def process_image(args):
     os.system("cp " + args.input + " " + args.output)
 
-    image = open_float_rgb(args.input)
+    # image = open_float_rgb(args.input)
 
-    output_basename = args.output.rsplit( ".", 1 )[ 0 ]
-    output_extension = args.output.rsplit( ".", 1 )[ 1 ]
+    # output_basename = args.output.rsplit( ".", 1 )[ 0 ]
+    # output_extension = args.output.rsplit( ".", 1 )[ 1 ]
 
-    write_rgb_square(output_basename + "_square." + output_extension, image)
+    # write_rgb_square(output_basename + "_square." + output_extension, image)
 
 
 def process_video(args):

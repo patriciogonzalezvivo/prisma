@@ -17,6 +17,7 @@ device = None
 model = None
 transform = None
 data = None
+MODELS_VERSIONS = ["midas2-small", "midas2", "midas3-small", "midas3"]
 
 
 # Load MiDAS v3.1 
@@ -24,12 +25,15 @@ def init_model(model_version="midas3"):
     global model, device, transform
     device = torch.device( DEVICE )
 
-    if model_version == "midas2":
+    if model_version == "midas2" or model_version == "midas2-small":
         model = torch.hub.load("intel-isl/MiDaS", 'MiDaS')
     else:
         model = torch.hub.load("intel-isl/MiDaS", 'DPT_Large')
 
-    transform = torch.hub.load("intel-isl/MiDaS", "transforms").default_transform
+    if model_version == "midas2-small" or model_version == "midas3-small":
+        transform = torch.hub.load("intel-isl/MiDaS", "transforms").small_transform
+    else:
+        transform = torch.hub.load("intel-isl/MiDaS", "transforms").default_transform
 
     model.to(device)
     model.eval()
@@ -176,7 +180,7 @@ if __name__ == "__main__":
     parser.add_argument('--ply' , '-p', help="Create point cloud PLY", action='store_true')
     parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
 
-    parser.add_argument('--model', type=str, choices=["midas2", "midas3"], default="midas3")
+    parser.add_argument('--model', type=str, choices=MODELS_VERSIONS, default="midas3")
 
     args = parser.parse_args()
 
