@@ -4,7 +4,7 @@ import av
 import cv2
 import numpy as np
 
-from .encode import heat_to_rgb
+from .encode import heat_to_rgb, float_to_rgb
 from .geom import create_point_cloud, save_point_cloud
 
 def create_folder(dir):
@@ -57,6 +57,10 @@ def to_float_rgb(image):
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
 
+# 
+# WRITE FUNCTIONS
+# 
+
 def write_rgb(path, rgba):
     cv2.imwrite(path, (rgba * 255).astype(np.uint8))
 
@@ -75,7 +79,7 @@ def write_rgb_square(path, rgba, resolution=1024):
     cv2.imwrite(path, cv2.cvtColor((rgba * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
 
 
-def write_depth(path, depth, normalize=True, flip=True, heatmap=False):
+def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_range=True):
     """Write depth map to png file.
     Args:
         path (str): filepath without extension
@@ -91,7 +95,14 @@ def write_depth(path, depth, normalize=True, flip=True, heatmap=False):
 
     if heatmap:
         depth = depth.astype(np.float64)
-        cv2.imwrite(path, (heat_to_rgb(depth) * 255 ).astype(np.uint8))
+        rgb = heat_to_rgb(depth)
+        if encode_range:
+            rgb[0,0] = float_to_rgb(depth_min, 0.0, 100.0)
+            rgb[0,1] = float_to_rgb(depth_max, 0.0, 100.0)
+
+        rgb = (rgb * 255 ).astype(np.uint8)
+
+        cv2.imwrite(path, rgb)
 
     else:
         bits = 2
@@ -127,7 +138,6 @@ def write_flow(flow, filename):
 
 
 def write_pcl(filename, depth, rgb, flip=False):
-    
     if flip:
         depth_min = depth.min()
         depth_max = depth.max()
@@ -148,26 +158,35 @@ def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p",
     os.system(cmd)
 
 
-def extract_frames(filename, folder=".", fps=24):
+def extract_frames(input_filename, output_filename=None, output_folder=None, fps=24):
     import decord
-    in_video = decord.VideoReader(filename)
+    in_video = decord.VideoReader(input_filename)
 
     width = in_video[0].shape[1]
     height = in_video[0].shape[0]
     fps = in_video.get_avg_fps()
     total_frames = len(in_video)
 
-    if not os.path.exists(folder):
-        create_folder(folder)
+    if output_folder:
+        if not os.path.exists(output_folder):
+            create_folder(output_folder)
 
     # Simple passthrough process to remove audio
-    print("Saving video " + output_file)
-    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_file)
+    if output_filename == None:
+        print("Saving video " + output_filename)
+        out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_filename)
+
     for i in tqdm( range(total_frames) ):
         curr_frame = in_video[i].asnumpy()
-        write_rgb(output_file, curr_frame)
-        out_video.write(curr_frame)
-    out_video.close()
+
+        if output_folder != None:
+            write_rgb( os.path.join(output_folder, str(i) + ".png", curr_frame) )
+            
+        if output_filename == None:
+            out_video.write(curr_frame)
+
+    if output_filename == None:
+        out_video.close()
 
 
 class VideoWriter(object):

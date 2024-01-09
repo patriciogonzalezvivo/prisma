@@ -111,7 +111,7 @@ def process_image(args):
         write_pcl( os.path.join(output_folder, BAND + '.ply'), 0.5 + prediction * 2.0, np.array(in_image))
 
     # Save depth
-    write_depth( args.output, prediction, flip=False, heatmap=True)
+    write_depth( args.output, prediction, flip=False, heatmap=True, encode_range=True)
 
 
 def process_video(args):
