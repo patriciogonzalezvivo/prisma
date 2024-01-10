@@ -3,40 +3,56 @@ import os
 import av
 import cv2
 import numpy as np
+from PIL import Image
 
 from .encode import heat_to_rgb, float_to_rgb
 from .geom import create_point_cloud, save_point_cloud
 
+
+#
+# FS FUNCTIONS
+#
+
 def create_folder(dir):
+    """Create a folder if it does not exist."""
     if not os.path.exists(dir):
         os.makedirs(dir)
 
 
 def copy_folder(src, dst):
+    """Copy a folder if it does not exist."""
     cmd = "cp -r " + src + " " + dst
     os.system(cmd)
 
 
 def check_overwrite(path):
+    """Check if a file exists and ask the user if it can be overwritten."""
     if os.path.exists(path):
         print("File exists: " + path)
         answer = input("Do you want to over write it? [y/N]: ") 
         if answer != "y":
             exit()
 
-
+#
+# MEDIA INFO FUNCTIONS
+#
 def get_image_size(path):
+    """Get image size, as a tuple (width, height)."""
     img = cv2.imread(path)
     return img.shape[1], img.shape[0]
 
 
 def get_video_data(path):
+    """Get video data, as a tuple (width, height, fps, total_frames)."""
     import decord
     video = decord.VideoReader(path)
     return video[0].shape[1], video[0].shape[0], video.get_avg_fps(), len(video)
     
-
+#
+# OPEN FUNCTIONS
+# 
 def open_float_rgb(path):
+    """Open image as float RGB with a range between 0.0 and 1.0."""
     img = cv2.imread(path)
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
@@ -44,47 +60,61 @@ def open_float_rgb(path):
 
 
 def open_rgb(path):
+    """Open image as RGB with a range between 0 and 255."""
     img = cv2.imread(path)
     if img.ndim == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+
+def open_image(path):
+    """Open image as PIL Image."""
+    return Image.open(path).convert("RGB")
     
+#
+# CONVERT FUNCTIONS
+#
 
 def to_float_rgb(image):
+    """Convert image to float RGB with a range between 0.0 and 1.0."""
     img = np.array(image)
     if len(img.shape) == 2:
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
 
 
+def to_image(numpy_array):
+    """Convert numpy array to PIL Image."""
+    return Image.fromarray( np.uint8( numpy_array ) ).convert('RGB')
+
 # 
 # WRITE FUNCTIONS
 # 
 
-def write_rgb(path, rgba):
-    cv2.imwrite(path, (rgba * 255).astype(np.uint8))
+def write_rgb(path, rgb):
+    """Write RGB image to png file."""
+    rgb = cv2.cvtColor((rgb * 255).astype(np.uint8), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(path, rgb)
 
 
 # Make image squared of a specific resolution by adding padding into the smaller side 
-def write_rgb_square(path, rgba, resolution=1024):
-    if rgba.shape[0] > rgba.shape[1]:
-        pad = (rgba.shape[0] - rgba.shape[1]) // 2
-        rgba = np.pad(rgba, ((0, 0), (pad, pad), (0, 0)), mode='constant', constant_values=0)
+def write_rgb_square(path, rgb, resolution=1024):
+    """Scales and pads a RGB image into a square image."""
+    if rgb.shape[0] > rgb.shape[1]:
+        pad = (rgb.shape[0] - rgb.shape[1]) // 2
+        rgb = np.pad(rgb, ((0, 0), (pad, pad), (0, 0)), mode='constant', constant_values=0)
         
-    elif rgba.shape[0] < rgba.shape[1]:
-        pad = (rgba.shape[1] - rgba.shape[0]) // 2
-        rgba = np.pad(rgba, ((pad, pad), (0, 0), (0, 0)), mode='constant', constant_values=0)
+    elif rgb.shape[0] < rgb.shape[1]:
+        pad = (rgb.shape[1] - rgb.shape[0]) // 2
+        rgb = np.pad(rgb, ((pad, pad), (0, 0), (0, 0)), mode='constant', constant_values=0)
 
-    rgba = cv2.resize(rgba, (resolution, resolution), interpolation=cv2.INTER_AREA)
-    cv2.imwrite(path, cv2.cvtColor((rgba * 255).astype(np.uint8), cv2.COLOR_BGR2RGB))
+    rgb = cv2.resize(rgb, (resolution, resolution), interpolation=cv2.INTER_AREA)
+    cv2.imwrite(path, cv2.cvtColor((rgb * 255).astype(np.uint8), cv2.COLOR_RGB2BGR))
 
 
 def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_range=True):
-    """Write depth map to png file.
-    Args:
-        path (str): filepath without extension
-        depth (array): depth
-    """
+    """Write depth map to an image file, Either as a heatmap or as a 16-bit png. 
+    Heatmaps by default contain the min and max depth ranges encoded in the first two pixels."""
     if normalize:
         depth_min = depth.min()
         depth_max = depth.max()
@@ -96,13 +126,15 @@ def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_ra
     if heatmap:
         depth = depth.astype(np.float64)
         rgb = heat_to_rgb(depth)
+
+        # encode min and max depth in the image in the first two pixels
         if encode_range:
-            rgb[0,0] = float_to_rgb(depth_min, 0.0, 100.0)
-            rgb[0,1] = float_to_rgb(depth_max, 0.0, 100.0)
+            rgb[0,0] = float_to_rgb(depth_min, 0.0, 1000.0)
+            rgb[0,1] = float_to_rgb(depth_max, 0.0, 1000.0)
 
         rgb = (rgb * 255 ).astype(np.uint8)
 
-        cv2.imwrite(path, rgb)
+        cv2.imwrite(path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
 
     else:
         bits = 2
@@ -138,6 +170,7 @@ def write_flow(flow, filename):
 
 
 def write_pcl(filename, depth, rgb, flip=False):
+    """Write point cloud to a ply file."""
     if flip:
         depth_min = depth.min()
         depth_max = depth.max()
@@ -151,6 +184,7 @@ def write_pcl(filename, depth, rgb, flip=False):
 
 
 def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p", crf=15):
+    """Make a video from a folder of images."""
     cmd = "ffmpeg -r " + str( fps ) + " -i " + folder + "/%05d.png -vcodec " + codec + " -crf " + str(crf) + " -pix_fmt " + pix_fmt + " preview.mp4"
     os.system(cmd)
 
@@ -159,6 +193,8 @@ def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p",
 
 
 def extract_frames(input_filename, output_filename=None, output_folder=None, fps=24):
+    """Extract frames from a video file."""
+
     import decord
     in_video = decord.VideoReader(input_filename)
 
@@ -180,7 +216,7 @@ def extract_frames(input_filename, output_filename=None, output_folder=None, fps
         curr_frame = in_video[i].asnumpy()
 
         if output_folder != None:
-            write_rgb( os.path.join(output_folder, str(i) + ".png", curr_frame) )
+            write_rgb(os.path.join(output_folder, str(i) + ".png"), curr_frame)
             
         if output_filename == None:
             out_video.write(curr_frame)
@@ -190,10 +226,11 @@ def extract_frames(input_filename, output_filename=None, output_folder=None, fps
 
 
 class VideoWriter(object):
+    """Video writer class."""
+
     def __init__(self, width, height, frame_rate, crf=15, filename="output.mp4"):
         super().__init__()
 
-        # get safe video size (divisible by 2)
         max_size = 3840
         video_width = width
         video_height = height
@@ -208,7 +245,6 @@ class VideoWriter(object):
         video_width = 2 * round(video_width / 2)
         video_height = 2 * round(video_height / 2)
 
-        # set video parameters
         self.options = {
             "width": video_width,
             "height": video_height,

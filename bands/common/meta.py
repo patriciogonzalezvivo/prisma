@@ -5,6 +5,8 @@ from .io import check_overwrite
 META_FILE = "metadata.json"
 
 def get_metadata_path(path):
+    """Get the path for the metadata file for a given path."""
+
     if os.path.isfile( path ):
         if path.endswith('.json'):
             return path 
@@ -18,6 +20,7 @@ def get_metadata_path(path):
 
 
 def load_metadata(path):
+    """Load the metadata from a given path."""
     metadata_path = get_metadata_path(path)
     if os.path.exists(metadata_path):
         return json.load( open(metadata_path) )
@@ -25,6 +28,7 @@ def load_metadata(path):
 
 
 def create_metadata(path):
+    """Create the metadata file for a given path."""
     folder = path
     if os.path.isfile( path ):
         folder = os.path.dirname(path)
@@ -47,10 +51,13 @@ def create_metadata(path):
 
 
 def is_video(path):
+    """Check if a path is a video."""
     return path.endswith('.mp4')
 
 
 def get_target(path, metadata, band="rgba", target="", force_image_extension=None):
+    """Get the target path for a given path and band."""
+
     if os.path.isdir( target ):
         input_folder = target
     else:
@@ -74,6 +81,8 @@ def get_target(path, metadata, band="rgba", target="", force_image_extension=Non
 
 
 def get_url(path, metadata, band):
+    """Get the url for a given path and band."""
+
     if os.path.isdir( path ):
         if metadata:
             if "bands" in metadata:
@@ -84,6 +93,8 @@ def get_url(path, metadata, band):
 
 
 def add_band(metadata, band, url="", folder=""):
+    """Add a band to the metadata."""
+
     if "bands" not in metadata:
         metadata["bands"] = { }
 
@@ -98,6 +109,8 @@ def add_band(metadata, band, url="", folder=""):
 
 
 def write_metadata(path, metadata):
+    """Write the metadata to a given path."""
+    
     if metadata == None:
         return
     

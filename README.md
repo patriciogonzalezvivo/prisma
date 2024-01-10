@@ -22,7 +22,19 @@ mim install mmengine
 mim install "mmcv-full==1.7.1"
 ```
 
-## Depth estimation (MiDAS 3.1)
+## Roadmap
+
+[ ] Depth encodes depth edge detection as saturation
+[ ] Rename depth_fusion to depth_patchfusion
+[ ] Rename depth_zoe to depth_zoedepth
+[ ] Default algorithm for depth / Generic depth band function
+[ ] Add fov field (default, from EXIF focal length, or COLMAP camera intrinsecs )
+[ ] Suport from Polycam RGB-D
+[ ] COLMAP camera paths
+
+## Aknowledgements
+
+### Depth estimation (MiDAS 3.1)
 
 **Paper:** [Towards Robust Monocular Depth Estimation: Mixing Datasets for Zero-shot Cross-dataset Transfer](https://arxiv.org/abs/1907.01341v3)
 
@@ -59,7 +71,7 @@ Citation for DPT-based model:
 ```
 
 
-## Depth Estimation (ZoeDepth)
+### Depth Estimation (ZoeDepth)
 
 **Paper:** [Zero-shot Transfer by Combining Relative and Metric Depth](https://arxiv.org/abs/2302.12288)
 
@@ -87,7 +99,7 @@ Citation
 }
 ```
 
-## Depth Estimation (PatchFusion)
+### Depth Estimation (PatchFusion)
 
 **Paper:** [PatchFusion: An End-to-End Tile-Based Framework for High-Resolution Monocular Metric Depth Estimation](https://zhyever.github.io/patchfusion/images/paper.pdf)
 
@@ -116,7 +128,7 @@ Citation
     primaryClass={cs.CV}}
 ```
 
-## Depth Estimation (Marigold)
+### Depth Estimation (Marigold)
 
 **Paper:** [Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
 
@@ -143,8 +155,7 @@ Citation
 }
 ```
 
-
-## Optical Flow (RAFT)
+### Optical Flow (RAFT)
 
 Based on https://github.com/SharifElfouly/opical-flow-estimation-with-RAFT
 
@@ -162,7 +173,7 @@ Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcod
 flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
-## Segmentation (MMDetection)
+### Segmentation (MMDetection)
 
 **Code Repo:** [MMDetection](https://github.com/open-mmlab/mmdetection)
 

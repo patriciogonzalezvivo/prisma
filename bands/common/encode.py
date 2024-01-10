@@ -3,19 +3,11 @@ import math
 
 
 def hue_to_rgb(hue):
-    if isinstance(hue, np.ndarray):
-        hue = 1.0 - hue
-        rgb = np.zeros((hue.shape[0], hue.shape[1], 3))
-        rgb[..., 0] = hue * 6.0
-        rgb[..., 1] = hue * 6.0 + 4.0
-        rgb[..., 2] = hue * 6.0 + 2.0
- 
-    else:
-        hue = 1.0 - hue
-        rgb = np.zeros(3)
-        rgb[0] = hue * 6.0
-        rgb[1] = hue * 6.0 + 4.0
-        rgb[2] = hue * 6.0 + 2.0
+    """Convert hue to RGB."""
+    rgb = np.zeros((hue.shape[0], hue.shape[1], 3))
+    rgb[..., 0] = hue * 6.0
+    rgb[..., 1] = hue * 6.0 + 4.0
+    rgb[..., 2] = hue * 6.0 + 2.0
 
     rgb = np.abs(np.mod(rgb, 6.0) - 3.0) - 1.0
     rgb = np.clip(rgb, 0.0, 1.0)
@@ -23,29 +15,38 @@ def hue_to_rgb(hue):
 
 
 def heat_to_rgb(heat):
-    return hue_to_rgb( 1.0 - heat * 0.65 )
+    """Convert heat to RGB."""
+    return hue_to_rgb( (1.0-heat) * 0.65 )
 
 
 def mask_to_rgb(m: np.ndarray ):
+    """Convert mask to RGB."""
     masks = np.where(m == 1, 255, m)
     return np.stack([masks] * 3, axis=-1)
 
 
-def encode_polar(a: np.ndarray , rad):
-    RGB = np.zeros((a.shape[0], a.shape[1], 3))
-    RGB[..., 0] = a * 6.0
-    RGB[..., 1] = a * 6.0 + 4.0
-    RGB[..., 2] = a * 6.0 + 2.0
+def saturation(rgb, sat):
+    """Set saturation."""
+    return rgb * sat + (1.0-sat)
 
-    RGB = np.abs( np.mod(RGB, 6.0) - 3.0 ) - 1.0
-    RGB = np.clip(RGB, 0.0, 1.0)
-    RGB[..., 0] = RGB[..., 0] * rad + (1.0-rad)
-    RGB[..., 1] = RGB[..., 1] * rad + (1.0-rad)
-    RGB[..., 2] = RGB[..., 2] * rad + (1.0-rad)
+
+def encode_polar(a: np.ndarray, rad):
+    """Encode polar cordinates to Hue (angle) and Saturation (radius)."""
+
+    # Angle
+    RGB = hue_to_rgb(a)
+
+    # Radius
+    RGB = saturation(RGB, rad)
+    # RGB[..., 0] = RGB[..., 0] * rad + (1.0-rad)
+    # RGB[..., 1] = RGB[..., 1] * rad + (1.0-rad)
+    # RGB[..., 2] = RGB[..., 2] * rad + (1.0-rad)
+    
     return RGB
 
 
 def encode_flow(flow, mask):
+    """Encode flow to RGB."""
     flow = 2**15 + flow * (2**8)
     mask &= np.max(flow, axis=-1) < (2**16 - 1)
     mask &= 0 < np.min(flow, axis=-1)

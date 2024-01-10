@@ -35,9 +35,11 @@ def prune(input_file, output_file, fps=24, subpath=""):
 
 
 def process_image(args):
-    os.system("cp " + args.input + " " + args.output)
+    # os.system("cp " + args.input + " " + args.output)
+    image = open_float_rgb(args.input)
+    print("in", args.input, "out",args.output)
+    write_rgb(args.output, image)
 
-    # image = open_float_rgb(args.input)
 
     # output_basename = args.output.rsplit( ".", 1 )[ 0 ]
     # output_extension = args.output.rsplit( ".", 1 )[ 1 ]
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
     parser.add_argument('--tmp', '-t', help="tmp", type=str, default="tmp.mp4")
-    parser.add_argument('--output', help="output", type=str, default="")
+    parser.add_argument('--output', '-o', help="output", type=str, default="")
     parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
     
     parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
@@ -104,13 +106,18 @@ if __name__ == '__main__':
         # IF the input is a PRISMA folder it can use the metadata defaults
         print("PRISMA metadata found and loaded")
         args.input = get_url(args.input, data, "rgba")
-        args.output = get_target(args.input, data, band=BAND, target=args.output)
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension='png')
         if args.rgbd:
             args.depth = get_target(args.input, data, band='depth', target=args.depth)
     else:
         input_extension = args.input.rsplit( ".", 1 )[ 1 ]
+
+        if input_extension != "mp4":
+            input_extension = "png"
+
         if os.path.isdir( args.output ):
             args.output = os.path.join(args.output, BAND + "." + input_extension)
+            
         args.depth = os.path.join(os.path.dirname(args.output), args.depth + "." + input_extension)
 
     # Check if the output folder exists

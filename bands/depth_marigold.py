@@ -8,11 +8,9 @@ warnings.filterwarnings("ignore")
 
 from marigold import MarigoldPipeline
 
-from common.io import create_folder, check_overwrite, write_depth, write_pcl
+from common.io import open_image, to_image, create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
-
-from PIL import Image
 
 BAND = "depth_marigold"
 CHECKPOINT = "Bingxin/Marigold"
@@ -88,7 +86,7 @@ def infer(img, denoising_steps=DENOISE_STEPS, ensemble_size=ENSEMBLE_STEPS, proc
 
 def process_image(args):
     output_folder = os.path.dirname(args.output)
-    in_image = Image.open(args.input).convert("RGB")
+    in_image = open_image(args.input)
 
     prediction = infer(in_image, normalize=False)
 
@@ -138,7 +136,7 @@ def process_video(args):
     csv_files = []
     for i in tqdm( range(total_frames) ):
             
-        img = Image.fromarray(np.uint8(in_video[i].asnumpy())).convert('RGB')
+        img = to_image( in_video[i].asnumpy() )
         prediction = infer(img, normalize=False)
 
         if args.npy:

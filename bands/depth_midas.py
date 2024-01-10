@@ -6,7 +6,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore")
 
-from common.io import create_folder, check_overwrite, write_depth, write_pcl
+from common.io import open_image, create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
@@ -71,8 +71,7 @@ def infer(img, model_version, normalize=False):
 
 def process_image(args):
     # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
+    in_image = open_image(args.input)
     output_folder = os.path.dirname(args.output)
 
     prediction = infer(in_image, model_version=args.model, normalize=False)

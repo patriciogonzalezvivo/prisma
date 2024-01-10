@@ -21,11 +21,11 @@ import torch.nn.functional as F
 import warnings
 warnings.filterwarnings("ignore")
 
-from common.io import to_float_rgb, check_overwrite, create_folder, write_depth, write_pcl
+from common.io import open_image, to_float_rgb, check_overwrite, create_folder, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.encode import heat_to_rgb
 
-BAND = "depth_fusion"
+BAND = "depth_patchfusion"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 MODEL = "models/patchfusion_u4k.pt"
 # MODEL_TYPE = "zoedepth"
@@ -112,8 +112,7 @@ def process_image(args):
     output_folder = os.path.dirname(args.output)
 
     # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
+    in_image = open_image(args.input)
 
     prediction = infer(in_image, mode=args.mode, blr_mask=not args.no_blur, boundary=args.boundary )
 

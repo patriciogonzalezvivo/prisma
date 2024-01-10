@@ -7,10 +7,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 from common.encode import heat_to_rgb
-from common.io import create_folder, check_overwrite, write_depth, write_pcl
+from common.io import open_image, create_folder, check_overwrite, write_depth, write_pcl
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 
-BAND = "depth_zoe"
+BAND = "depth_zoedepth"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 
 device = None
@@ -62,8 +62,7 @@ def infer(img, normalize=False):
 
 def process_image(args):
     # LOAD resource 
-    from PIL import Image
-    in_image = Image.open(args.input).convert("RGB")
+    in_image = open_image(args.input)
     output_folder = os.path.dirname(args.output)
 
     # prediction = model.infer_pil( in_image )

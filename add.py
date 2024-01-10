@@ -73,12 +73,13 @@ if __name__ == '__main__':
     write_metadata(folder_name, data)
     
     # 5. Extract bands
+    # 
 
     # Depth (MariGold)
     run("depth_marigold", folder_name, extra_args="--ply")
 
     # Depth HUE (ZoeDepth w MiDAS v2.1)
-    run("depth_zoe", folder_name, extra_args="--ply")
+    run("depth_zoedepth", folder_name, extra_args="--ply")
 
     # Midas v3.1
     run("depth_midas", folder_name, extra_args="--ply")
@@ -88,14 +89,14 @@ if __name__ == '__main__':
 
     if is_video(input_path):
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_fusion", folder_name, extra_args="--mode=p49")
+        run("depth_patchfusion", folder_name, extra_args="--mode=p49")
 
         # Flow (RAFT)
         run("flow_raft", folder_name)
 
     else:        
         # Depth (PatchFusion w ZoeDepth)
-        run("depth_fusion", folder_name, extra_args="--ply")
+        run("depth_patchfusion", folder_name, extra_args="--ply")
 
 
         
