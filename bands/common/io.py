@@ -83,10 +83,8 @@ def get_video_data(path):
 # 
 def open_float_rgb(path):
     """Open image as float RGB with a range between 0.0 and 1.0."""
-    img = cv2.imread(path)
-    if img.ndim == 2:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+    img = Image.open(path).convert("RGB")
+    return np.array(img) / 255.0
 
 
 def open_rgb(path):
@@ -161,7 +159,7 @@ def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_ra
         rgb = heat_to_rgb(depth)
 
         # encode edge into the saturation channel
-        rgb = saturation(rgb, 1.0 - edge * 0.5)
+        rgb = saturation(rgb, 1.0 - edge)
 
         # encode min and max depth in the image in the first two pixels
         if encode_range:

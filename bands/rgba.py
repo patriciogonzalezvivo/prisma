@@ -65,9 +65,11 @@ def prune(input_file, output_file, fps=24, subpath=""):
 
 
 def process_image(args):
-    # os.system("cp " + args.input + " " + args.output)
-    image = open_float_rgb(args.input)
-    print("in", args.input, "out",args.output)
+    print("cp " + args.input + " " + args.tmp)
+    os.system("cp " + args.input + " " + args.tmp)
+
+    print("Open", args.tmp, "and save it to", args.output)
+    image = open_float_rgb(args.tmp)
     write_rgb(args.output, image)
 
 
@@ -91,7 +93,9 @@ def process_video(args):
     total_frames = len(in_video)
 
     if args.rgbd == "none":
-        prune(args.input, args.output, args.fps, args.subpath)
+        os.system("cp " + args.input + " " + args.tmp)
+
+        prune(args.tmp, args.output, args.fps, args.subpath)
 
     else:
         rgb = "none"
@@ -113,15 +117,11 @@ def process_video(args):
             depth_subpath = 'depth'
         prune(args.depth, args.depth, args.fps, depth_subpath)
 
-    # remove tmp file
-    if os.path.exists(args.tmp):
-        os.remove(args.tmp)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
-    parser.add_argument('--tmp', '-t', help="tmp", type=str, default="tmp.mp4")
+    parser.add_argument('--tmp', '-t', help="tmp", type=str, default="tmp")
     parser.add_argument('--output', '-o', help="output", type=str, default="")
     parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
     
@@ -135,12 +135,18 @@ if __name__ == '__main__':
     if data:
         # IF the input is a PRISMA folder it can use the metadata defaults
         print("PRISMA metadata found and loaded")
-        args.input = get_url(args.input, data, "rgba")
+        args.tmp = get_url(args.input, data, "rgba")
         args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension='png')
         if args.rgbd:
             args.depth = get_target(args.input, data, band='depth', target=args.depth)
     else:
+        input_folder = os.path.dirname(args.input)
+        input_basename = os.path.basename(args.input)
+        input_name = args.input.rsplit( ".", 1 )[ 0 ]
         input_extension = args.input.rsplit( ".", 1 )[ 1 ]
+
+        if args.tmp == "tmp":
+            args.tmp = os.path.join(input_folder, "tmp." + input_extension)
 
         if input_extension != "mp4":
             input_extension = "png"
@@ -159,6 +165,10 @@ if __name__ == '__main__':
         process_video(args)
     else:
         process_image(args)
+
+    # remove tmp file
+    if os.path.exists(args.tmp):
+        os.remove(args.tmp)
 
     # save metadata
     write_metadata(args.input, data)

@@ -24,9 +24,6 @@ mim install "mmcv-full==1.7.1"
 
 ## Roadmap
 
-[ ] Depth encodes depth edge detection as saturation
-[ ] Rename depth_fusion to depth_patchfusion
-[ ] Rename depth_zoe to depth_zoedepth
 [ ] Default algorithm for depth / Generic depth band function
 [ ] Add fov field (default, from EXIF focal length, or COLMAP camera intrinsecs )
 [ ] Suport from Polycam RGB-D

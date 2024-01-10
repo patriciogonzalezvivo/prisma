@@ -68,11 +68,13 @@ def create_metadata(path):
         os.makedirs(folder)
 
     metadata_path = get_metadata_path(path)
-    print(metadata_path)
 
-    if metadata_path:
-        print("ERROR: Cannot create metadata for {}".format(path))
+    if metadata_path == None:
+        print("Can't create metadata for {}".format(path))
+
+    else:
         metadata_path = os.path.join(folder, META_FILE)
+        print("Creating metadata for {} as {}".format(path, metadata_path))
 
         with open( metadata_path, 'w') as metadata_file:
             metadata_file.write( json.dumps({ "bands": { } }, indent=4) )
