@@ -1,5 +1,31 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Copyright (c) 2024, Patricio Gonzalez Vivo
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+
+#     * Neither the name of Patricio Gonzalez Vivo nor the names of
+#       its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 
 import os
 import cv2
@@ -16,8 +42,6 @@ from bands.common.colmap import read_model
 from bands.common.meta import load_metadata
 
 DEPTH_IMAGE_SCALING: Final = 1e4
-
-skip = ["rgba_scaled", "perspective_ori", "perspective_lat"]
 
 # calculate focus point from field of view
 def calc_focus_point(fov, width):
@@ -41,10 +65,6 @@ def add_values(data, name, values):
 
 
 def add_band(data, name, values, path="bands/textures/"):
-
-    if name in skip:
-        return
-            
     width = int(data["width"] / 2)
     height = int(data["height"] / 2)
     frames = int(data["frames"])
@@ -74,6 +94,7 @@ def add_band(data, name, values, path="bands/textures/"):
 
                 band = depth_min + band * (depth_max - depth_min)
                 rr.log_depth_image(path + "depth", band * 100.0, meter=DEPTH_IMAGE_SCALING)
+                
             elif name == "mask":
                 band = cv2.cvtColor(band, cv2.COLOR_BGR2GRAY)
                 rr.log_segmentation_image(path + "mask", band)

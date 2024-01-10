@@ -1,3 +1,33 @@
+# Copyright (c) 2024, Patricio Gonzalez Vivo
+# All rights reserved.
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+
+#     * Neither the name of Patricio Gonzalez Vivo nor the names of
+#       its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
 import os
 
 import av
@@ -5,7 +35,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .encode import heat_to_rgb, float_to_rgb
+from .encode import heat_to_rgb, float_to_rgb, float_to_edge, saturation
 from .geom import create_point_cloud, save_point_cloud
 
 
@@ -124,8 +154,14 @@ def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_ra
         depth = 1.0-depth
 
     if heatmap:
+        edge = float_to_edge(depth, ksize=1)
         depth = depth.astype(np.float64)
+        
+        # encode depth into a heatmap pattern (blue close, red far)
         rgb = heat_to_rgb(depth)
+
+        # encode edge into the saturation channel
+        rgb = saturation(rgb, 1.0 - edge * 0.5)
 
         # encode min and max depth in the image in the first two pixels
         if encode_range:
@@ -190,39 +226,6 @@ def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p",
 
     cmd = "mv preview.mp4 " + filename
     os.system(cmd)
-
-
-def extract_frames(input_filename, output_filename=None, output_folder=None, fps=24):
-    """Extract frames from a video file."""
-
-    import decord
-    in_video = decord.VideoReader(input_filename)
-
-    width = in_video[0].shape[1]
-    height = in_video[0].shape[0]
-    fps = in_video.get_avg_fps()
-    total_frames = len(in_video)
-
-    if output_folder:
-        if not os.path.exists(output_folder):
-            create_folder(output_folder)
-
-    # Simple passthrough process to remove audio
-    if output_filename == None:
-        print("Saving video " + output_filename)
-        out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_filename)
-
-    for i in tqdm( range(total_frames) ):
-        curr_frame = in_video[i].asnumpy()
-
-        if output_folder != None:
-            write_rgb(os.path.join(output_folder, str(i) + ".png"), curr_frame)
-            
-        if output_filename == None:
-            out_video.write(curr_frame)
-
-    if output_filename == None:
-        out_video.close()
 
 
 class VideoWriter(object):
