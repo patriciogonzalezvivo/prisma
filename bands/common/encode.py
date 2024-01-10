@@ -33,16 +33,13 @@ def saturation(rgb, sat):
 def encode_polar(a: np.ndarray, rad):
     """Encode polar cordinates to Hue (angle) and Saturation (radius)."""
 
-    # Angle
-    RGB = hue_to_rgb(a)
-
-    # Radius
-    RGB = saturation(RGB, rad)
-    # RGB[..., 0] = RGB[..., 0] * rad + (1.0-rad)
-    # RGB[..., 1] = RGB[..., 1] * rad + (1.0-rad)
-    # RGB[..., 2] = RGB[..., 2] * rad + (1.0-rad)
+    rgb = hue_to_rgb(a)
+    rgb = saturation(rgb, rad)
+    # rgb[..., 0] = rgb[..., 0] * rad + (1.0-rad)
+    # rgb[..., 1] = rgb[..., 1] * rad + (1.0-rad)
+    # rgb[..., 2] = rgb[..., 2] * rad + (1.0-rad)
     
-    return RGB
+    return rgb
 
 
 def encode_flow(flow, mask):
@@ -54,6 +51,8 @@ def encode_flow(flow, mask):
 
 
 def process_flow(flow):
+    """Process flow."""
+
     h, w, _ = flow.shape
     distances = np.sqrt(np.square(flow[..., 0]) + np.square(flow[..., 1]))
 
@@ -68,15 +67,19 @@ def process_flow(flow):
 
 
 def nearestPowerOfTwo(x):
+    """Get nearest power of two."""
     return int(math.pow(2, math.ceil( math.log(x) / math.log(2) )))
 
 
 def get_uv_form_index(index, img_size):
+    """Get UV from index."""
     x = index % img_size
     y = math.floor(index / img_size)
     return x, y
 
+
 def float_to_rgb(value, min_value=0.0, max_value=1.0, base=256):
+    """Convert float to RGB."""
     L  = np.clip( (value - min_value) / (max_value - min_value), 0.0, 1.0) * (base * base * base - 1)
     return (    (np.floor(L % base)) / (base - 1),
                 (np.floor(L / base) % base) / (base - 1),
@@ -84,6 +87,8 @@ def float_to_rgb(value, min_value=0.0, max_value=1.0, base=256):
 
 
 def encode_data_into_img(data, min_value=0.0, max_value=1.0, base=256, gain=1.0):
+    """Encode data into image."""
+    
     if isinstance(data, list):
         data = np.array(data)
 
