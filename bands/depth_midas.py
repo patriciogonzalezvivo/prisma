@@ -162,31 +162,32 @@ def process_video(args):
             else:
                 np.save( os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
+
+        # Normalize and flip for video encoding (min/max are saved on two CVS files)
         depth_min = prediction.min()
         depth_max = prediction.max()
-
         depth = (prediction - depth_min) / (depth_max - depth_min)
         depth = 1.0-depth
         out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
+        csv_files.append( ( depth_min.item(), depth_max.item()  ) )
 
+        # Safe prediction (not normalized/flipped depth, so it can be done by write_depth and the range encoded properly)
         if args.subpath != '':
             write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=True, flip=True, heatmap=True, encode_range=True)
 
-        csv_files.append( ( depth_min.item(),
-                            depth_max.item()  ) )
-
+    # Close video
     out_video.close()
 
+    # Save min/max depth in CVS files
     csv_min = open( os.path.join( output_folder, BAND + "_min.csv" ) , 'w')
     csv_max = open( os.path.join( output_folder, BAND + "_max.csv" ) , 'w')
-
     for e in csv_files:
         csv_min.write( '{}\n'.format(e[0]) )
         csv_max.write( '{}\n'.format(e[1]) )
-
     csv_min.close()
     csv_max.close()
 
+    # Save metadata
     if data:
         data["bands"][BAND]["values"] = { 
                                             "min" : {
