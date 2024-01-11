@@ -163,15 +163,18 @@ def process_video(args):
 
         if args.flo_subpath != '':
             write_flow(os.path.join(args.flo_subpath + '_fwd', '%04d.flo' % i), fwd_flow)
-            write_flow(os.path.join(args.flo_subpath + '_bwd', '%04d.flo' % i), bwd_flow)
+            if args.backwards:
+                write_flow(os.path.join(args.flo_subpath + '_bwd', '%04d.flo' % i), bwd_flow)
 
         if args.ds_subpath != '':
             cv2.imwrite(os.path.join(args.ds_subpath + '_fwd', '%04d.png' % i), encode_flow(fwd_flow, mask_fwd))
-            cv2.imwrite(os.path.join(args.ds_subpath + '_bwd', '%04d.png' % i), encode_flow(bwd_flow, mask_bwd))
+            if args.backwards:
+                cv2.imwrite(os.path.join(args.ds_subpath + '_bwd', '%04d.png' % i), encode_flow(bwd_flow, mask_bwd))
 
         if args.vis_subpath != '':
             cv2.imwrite(os.path.join(args.vis_subpath + '_fwd', '%04d.jpg' % i), flow_viz.flow_to_image(fwd_flow))
-            cv2.imwrite(os.path.join(args.vis_subpath + '_bwd', '%04d.jpg' % i), flow_viz.flow_to_image(bwd_flow))
+            if args.backwards:
+                cv2.imwrite(os.path.join(args.vis_subpath + '_bwd', '%04d.jpg' % i), flow_viz.flow_to_image(bwd_flow))
 
         prev_frame = curr_frame.clone()
     

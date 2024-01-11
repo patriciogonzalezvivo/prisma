@@ -151,11 +151,11 @@ def process_video(args):
         
     mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_path )
 
-    if args.mask_subpath != '':
+    if args.subpath != '':
         if data:
-            data["bands"][BAND]["folder"] = args.mask_subpath
-        args.mask_subpath = os.path.join(output_folder, args.mask_subpath)
-        create_folder(args.mask_subpath)
+            data["bands"][BAND]["folder"] = args.subpath
+        args.subpath = os.path.join(output_folder, args.subpath)
+        create_folder(args.subpath)
 
     if args.sdf_subpath != '':
         args.sdf = True
@@ -187,8 +187,8 @@ def process_video(args):
 
         mask_video.write( masks.astype(np.uint8) )
 
-        if args.mask_subpath != '':
-            cv2.imwrite(os.path.join(args.mask_subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
+        if args.subpath != '':
+            cv2.imwrite(os.path.join(args.subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
 
         if args.sdf:
             masks = snowy.rgb_to_luminance( snowy.extract_rgb(masks) )
@@ -221,9 +221,9 @@ if __name__ == "__main__":
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
     parser.add_argument('--output', '-o', help="output", type=str, default="")
 
-    parser.add_argument('--sdf', '-s',action='store_true')
+    parser.add_argument('--subpath', help="Mask Subpath to frames", type=str, default='')
 
-    parser.add_argument('--mask_subpath', help="Mask Subpath to frames", type=str, default='')
+    parser.add_argument('--sdf', '-s',action='store_true')
     parser.add_argument('--sdf_subpath', help="SDF Subpath to frames", type=str, default='')
 
     args = parser.parse_args()

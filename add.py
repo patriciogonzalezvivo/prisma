@@ -36,17 +36,36 @@ from bands.common.meta import create_metadata, is_video, add_band, write_metadat
 import warnings
 warnings.filterwarnings("ignore")
 
+# Default values
+DEPTH_VIDEO_DEFUALT = "depth_zoedepth"
+DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
+DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion"]
+DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
+
+# Subfolders
+SUBFOLDERS = {
+    "rgba": "images",
+    "mask_mmdet": "mask",
+    "flow_raft": "flow",
+    "depth_zoedepth": "depth",
+    "depth_midas": "depth_midas",
+    "depth_marigold": "depth_marigold",
+    "depth_patchfusion": "depth_patchfusion",
+}
+
+
 # Run band model
-def run(band, input_folder, output_file="", save_frames=False, extra_args = ""):
+def run(band, input_folder, output_file="", subpath=False, extra_args = ""):
     print("\n# ", band.upper())
     cmd = "CUDA_VISIBLE_DEVICES=0 python3 bands/" + band + ".py -i " + input_folder
     if output_file != "":
-        cmd += " --output " + output_file 
+        cmd += " --output " + output_file
+
     if extra_args != "":
         cmd += " " + extra_args
 
-    if save_frames:
-        cmd += " --subpath " + band
+    if subpath:
+        cmd += " --subpath " + SUBFOLDERS[band] + " "
 
     print(cmd,"\n")
     os.system(cmd)
@@ -56,11 +75,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input file", type=str, required=True)
     parser.add_argument('--output', help="folder name", type=str, default='')
+
+    # global video properties
     parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
-    parser.add_argument('--rgbd', '-d', help='Where the depth is', type=str, default=None)
-    parser.add_argument('--frames', '-f', help='Save extra frame data as images', action='store_true')
+    parser.add_argument('--extra', '-e', help='Save extra data [>0 frames|PLYs; >1 FLOs; >2 NPY]', type=int, default=0)
+
+    # Depth
+    parser.add_argument('--rgbd', help='Where the depth is', type=str, default=None)
+    parser.add_argument('--depth', '-d', help='Depth bands', type=str, default=None, choices=DEPTH_OPTIONS)
     parser.add_argument('--ply', '-p', help='Save ply for images', action='store_true')
     parser.add_argument('--npy', '-n', help='Save npy version of files', action='store_true')
+
+    # Flow
+    parser.add_argument('--flo', help='Save flo files for raft', action='store_true')
+    parser.add_argument('--flow_backwards', '-b',  help="Save backwards video", action='store_true')
 
 
     args = parser.parse_args()
@@ -90,14 +118,14 @@ if __name__ == '__main__':
     # 3. Extract RGBA (only if doesn't exist)
     add_band(data, "rgba", url=name_rgba)
 
-    extra_args = "--subpath images"
+    extra_args = ""
     if args.rgbd:
         extra_args += "--rgbd " + args.rgbd
 
     if is_video(input_path):
-        extra_args += " -d images --fps " + str(args.fps)
+        extra_args += " --fps " + str(args.fps)
 
-    run("rgba", input_path, path_rgba, save_frames=True, extra_args=extra_args)
+    run("rgba", input_path, path_rgba, subpath=True, extra_args=extra_args)
 
     # 4. Add metadata
     if is_video(input_path):
@@ -112,36 +140,64 @@ if __name__ == '__main__':
     # 5. Extract bands
     # 
 
-    extra_args = ""
+    # Set some global properties
+    global_args = ""
+
+    if args.extra > 0:
+        args.ply = True
+
+    if args.extra > 1:
+        args.flo = True
+        args.flow_backwards = True
+
+    if args.extra > 2:
+        args.npy = True
+
+    # 5.a EXTRACT DEPTH
+        
     if args.ply:
-        extra_args = "--ply "
+        depth_args = "--ply "
 
     if args.npy:
-        extra_args += "--npy "
+        depth_args += "--npy "
 
+    # Choose defualt depth band
+    if args.depth == None:
+        if is_video(input_path):
+            args.depth = DEPTH_VIDEO_DEFUALT
+        else:
+            args.depth = DEPTH_IMAGE_DEFAULT
 
-    # Depth (MariGold)
-    run("depth_marigold", folder_name, save_frames=args.frames, extra_args=extra_args)
+    # Process depth
+    if args.depth == "all":
 
-    # Depth HUE (ZoeDepth w MiDAS v2.1)
-    run("depth_zoedepth", folder_name, save_frames=args.frames, extra_args=extra_args)
+        for band in DEPTH_BANDS:
+            extra_args = depth_args
 
-    # Midas v3.1
-    run("depth_midas", folder_name, save_frames=args.frames, extra_args=extra_args)
+            if band == "depth_patchfusion" and is_video(input_path):
+                extra_args += "--mode=p49 "
 
-    # Mask (mmdet)
-    run("mask_mmdet", folder_name, save_frames=args.frames, extra_args=extra_args + "--sdf")
+            run(band, folder_name, subpath=args.extra, extra_args=extra_args)
+    else:
+        extra_args = depth_args
 
+        if args.depth == "depth_patchfusion" and is_video(input_path):
+            extra_args += "--mode=p49 "
+
+        run(args.depth, folder_name, subpath=args.extra, extra_args=extra_args)
+    
+    # 5.b EXTRACT MASK (mmdet)
+    run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
+
+    # 5.c EXTRACT optical FLOW
     if is_video(input_path):
-        # Depth (PatchFusion w ZoeDepth)
-        run("depth_patchfusion", folder_name, save_frames=args.frames, extra_args=extra_args + " --mode=p49")
-
         # Flow (RAFT)
-        run("flow_raft", folder_name)
-
-    else:        
-        # Depth (PatchFusion w ZoeDepth)
-        run("depth_patchfusion", folder_name, extra_args=extra_args)
+        flow_args = ""
+        if args.flo:
+            flow_args += "--flo_subpath flow "
+        if args.flow_backwards:
+            flow_args += "--backwards "
+        run("flow_raft", folder_name, subpath=True, extra_args=flow_args)
 
 
         
