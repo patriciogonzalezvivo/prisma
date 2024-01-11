@@ -138,7 +138,7 @@ def process_image(args):
         write_pcl( os.path.join(output_folder, BAND + '.ply'), 0.5 + prediction * 2.0, np.array(in_image))
 
     # Save depth
-    write_depth( args.output, prediction, flip=False, heatmap=True, encode_range=True)
+    write_depth( args.output, prediction, normalize=True, flip=False, heatmap=True, encode_range=True)
 
 
 def process_video(args):
@@ -176,11 +176,11 @@ def process_video(args):
 
         depth_min = prediction.min()
         depth_max = prediction.max()
-        depth = 1.0 - (prediction - depth_min) / (depth_max - depth_min)
+        depth = (prediction - depth_min) / (depth_max - depth_min)
         out_video.write( ( heat_to_rgb(depth.astype(np.float64)) * 255 ).astype(np.uint8) )
 
         if args.subpath != '':
-            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=False, flip=False, heatmap=True)
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=True, flip=False, heatmap=True, encode_range=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )

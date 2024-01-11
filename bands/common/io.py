@@ -140,7 +140,7 @@ def write_rgb_square(path, rgb, resolution=1024):
     cv2.imwrite(path, cv2.cvtColor((rgb * 255).astype(np.uint8), cv2.COLOR_RGB2BGR))
 
 
-def write_depth(path, depth, normalize=True, flip=True, heatmap=False, encode_range=True):
+def write_depth(path, depth, normalize=True, flip=False, heatmap=False, encode_range=True):
     """Write depth map to an image file, Either as a heatmap or as a 16-bit png. 
     Heatmaps by default contain the min and max depth ranges encoded in the first two pixels."""
     if normalize:
@@ -210,7 +210,6 @@ def write_pcl(filename, depth, rgb, flip=False):
         depth_max = depth.max()
         depth = (depth - depth_min) / (depth_max - depth_min)
         depth = 1.0-depth
-
         depth = depth_min + depth * (depth_max - depth_min)
 
     pcl = create_point_cloud(depth, rgb.shape[1]/2, rgb.shape[0]/2)

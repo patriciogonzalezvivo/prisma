@@ -84,7 +84,7 @@ def infer(img, normalize=False):
         depth_max = prediction.max()
 
         if depth_max - depth_min > np.finfo("float").eps:
-            prediction = 1.0-(prediction - depth_min) / (depth_max - depth_min)
+            prediction = (prediction - depth_min) / (depth_max - depth_min)
 
     return prediction
 
@@ -95,7 +95,7 @@ def process_image(args):
     output_folder = os.path.dirname(args.output)
 
     # prediction = model.infer_pil( in_image )
-    prediction = infer( in_image, normalize=False )
+    prediction = infer( in_image, normalize=False)
 
     if data:
         depth_min = prediction.min().item()
@@ -114,10 +114,10 @@ def process_image(args):
         np.save( os.path.join(output_folder, BAND + '.npy'), prediction)
 
     if args.ply:
-        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image), flip=False)
+        write_pcl( os.path.join(output_folder, BAND + '.ply'), prediction, np.array(in_image))
 
     # Save depth
-    write_depth( args.output, prediction, normalize=True, flip=False, heatmap=True, encode_range=True)
+    write_depth( args.output, prediction, normalize=True, heatmap=True, encode_range=True)
 
 
 def process_video(args):
@@ -156,14 +156,15 @@ def process_video(args):
             else:
                 np.save( os.path.join(os.path.join(output_folder, BAND + '_npy', prediction), '%04d.npy' % i), prediction)
 
+        # Normalize Depth
         depth_min = prediction.min()
         depth_max = prediction.max()
         depth = (prediction - depth_min) / (depth_max - depth_min)
-        depth = 1.0-depth.astype(np.float64)
-        out_video.write( ( heat_to_rgb(depth) * 255 ).astype(np.uint8) )
+        out_video.write( ( heat_to_rgb( depth.astype(np.float64) ) * 255 ).astype(np.uint8) )
 
+        # Safe prediction
         if args.subpath != '':
-            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=True, flip=False, heatmap=True)
+            write_depth( os.path.join(args.subpath, "{:05d}.png".format(i)), prediction, normalize=True, flip=False, heatmap=True, encode_range=True)
 
         csv_files.append( ( depth_min.item(),
                             depth_max.item()  ) )
