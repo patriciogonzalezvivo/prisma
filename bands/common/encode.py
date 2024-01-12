@@ -35,10 +35,16 @@ import cv2
 
 def hue_to_rgb(hue):
     """Convert hue to RGB."""
-    rgb = np.zeros((hue.shape[0], hue.shape[1], 3))
-    rgb[..., 0] = hue * 6.0
-    rgb[..., 1] = hue * 6.0 + 4.0
-    rgb[..., 2] = hue * 6.0 + 2.0
+    if isinstance(hue, np.ndarray):
+        rgb = np.zeros((hue.shape[0], hue.shape[1], 3))
+        rgb[..., 0] = hue * 6.0
+        rgb[..., 1] = hue * 6.0 + 4.0
+        rgb[..., 2] = hue * 6.0 + 2.0
+    else:
+        rgb = np.zeros(3)
+        rgb[0] = hue * 6.0
+        rgb[1] = hue * 6.0 + 4.0
+        rgb[2] = hue * 6.0 + 2.0
 
     rgb = np.abs(np.mod(rgb, 6.0) - 3.0) - 1.0
     rgb = np.clip(rgb, 0.0, 1.0)

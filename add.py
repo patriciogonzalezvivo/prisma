@@ -193,11 +193,9 @@ if __name__ == '__main__':
     if is_video(input_path):
         # Flow (RAFT)
         flow_args = ""
-        if args.flo:
-            flow_args += "--flo_subpath flow "
         if args.flow_backwards:
             flow_args += "--backwards "
-        run("flow_raft", folder_name, subpath=True, extra_args=flow_args)
+        run("flow_raft", folder_name, subpath=args.flo, extra_args=flow_args)
 
 
         

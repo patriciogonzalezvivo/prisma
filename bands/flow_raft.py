@@ -140,7 +140,7 @@ def process_video(args):
                 _, flow_up = model(image1, image2, iters=args.iterations, test_mode=True)
                 fwd_flow = padder.unpad(flow_up[0]).permute(1,2,0).cpu().numpy()
 
-                if args.ds_subpath != '' or args.vis_subpath  != '' or args.flo_subpath != '' or args.backwards:
+                if args.ds_subpath != '' or args.vis_subpath  != '' or args.subpath != '' or args.backwards:
                     bwd_flow = padder.unpad(flow_up[1]).permute(1,2,0).cpu().numpy()
 
                 if args.ds_subpath != '':
@@ -161,10 +161,10 @@ def process_video(args):
             bwd_flow_pixels, _, _ = process_flow(bwd_flow)
             out_bk_video.write(bwd_flow_pixels)
 
-        if args.flo_subpath != '':
-            write_flow(os.path.join(args.flo_subpath + '_fwd', '%04d.flo' % i), fwd_flow)
+        if args.subpath != '':
+            write_flow(os.path.join(args.subpath + '_fwd', '%04d.flo' % i), fwd_flow)
             if args.backwards:
-                write_flow(os.path.join(args.flo_subpath + '_bwd', '%04d.flo' % i), bwd_flow)
+                write_flow(os.path.join(args.subpath + '_bwd', '%04d.flo' % i), bwd_flow)
 
         if args.ds_subpath != '':
             cv2.imwrite(os.path.join(args.ds_subpath + '_fwd', '%04d.png' % i), encode_flow(fwd_flow, mask_fwd))
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     parser.add_argument('--output', '-o', help="output", type=str, default="")
     parser.add_argument('--model', '-m', help="model path", type=str, default=MODEL)
     parser.add_argument('--iterations', help="number of iterations", type=int, default=ITERATIONS)
-    parser.add_argument('--flo_subpath', '-f', help="path to flo files", type=str, default='')
+    parser.add_argument('--subpath', '-f', help="path to flo files", type=str, default='')
     parser.add_argument('--ds_subpath', '-d', help="path to flo files", type=str, default='')
     parser.add_argument('--vis_subpath', '-v', help="path to flo files", type=str, default='')
     parser.add_argument('--backwards','-b',  help="Backward video", action='store_true')
@@ -238,20 +238,23 @@ if __name__ == '__main__':
 
     input_folder = os.path.dirname(args.input)
 
-    if args.flo_subpath != '':
-        args.flo_subpath = os.path.join(input_folder, args.flo_subpath)
-        os.makedirs(args.flo_subpath + "_fwd", exist_ok=True)
-        os.makedirs(args.flo_subpath + "_bwd", exist_ok=True)
+    if args.subpath != '':
+        args.subpath = os.path.join(input_folder, args.subpath)
+        os.makedirs(args.subpath + "_fwd", exist_ok=True)
+        if args.backwards:
+            os.makedirs(args.subpath + "_bwd", exist_ok=True)
 
     if args.ds_subpath != '':
         args.ds_subpath = os.path.join(input_folder, args.ds_subpath)
         os.makedirs(args.ds_subpath + "_fwd", exist_ok=True)
-        os.makedirs(args.ds_subpath + "_bwd", exist_ok=True)
+        if args.backwards:
+            os.makedirs(args.ds_subpath + "_bwd", exist_ok=True)
 
     if args.vis_subpath != '':
         args.vis_subpath = os.path.join(input_folder, args.vis_subpath)
         os.makedirs(args.vis_subpath + "_fwd", exist_ok=True)
-        os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
+        if args.backwards:
+            os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
 
     # init model
     init_model(args)
