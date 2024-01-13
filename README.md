@@ -34,7 +34,17 @@ python process.py -i data/gog.jpg
 ```
 
 With out providing an `--output` this will create a folder with the same filename which will contain all the derived bands (`rgba`, `flow`, `mask` and `depth_*`).
-In this forlder you will find a `meta.json` file that contains all the metadata associated with the original image or video.
+
+```
+gog.jpg
+gog/
+├── depth_patchfusion.png
+├── mask.png
+├── metadata.json
+└── rgba.png
+```
+
+In the forlder you will find a `metadata.json` file that contains all the metadata associated with the original image or video.
 
 ```json
 {
@@ -84,12 +94,73 @@ When processing videos, by default PRISMA creates the least ammount of data by c
 it's possible to save extra data by setting the `--extra`|`-e` level number.
 
 0. store bands as a single `.png` and `.mp4` (video have usually an associated `.csv` file)
+1. store images as `.ply` point clouds, for videos it extracts the reslting frames as `.png`
+2. store optical flow from videos as `.flo` files.
+3. store inferenced depth as `.npy` files.
 
+Let's try now extracting all depth models and individual frames from a video:
 
 ```bash
+python process.py -i data/rocky.mp4 -d all -e 1
+```
 
+Which produce the folowing folder structure:
 
-Each image or video will become a folder where all the derived bands will be stored together with a `meta.json` that keep tracks of the associated data.
+```
+rocky.mp4
+rocky/
+├── images/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_marigold/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_marigold_max.csv
+├── depth_marigold_min.csv
+├── depth_marigold.mp4
+├── depth_midas/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_midas_max.csv
+├── depth_midas_min.csv
+├── depth_midas.mp4
+├── depth_patchfusion/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_patchfusion_max.csv
+├── depth_patchfusion_min.csv
+├── depth_patchfusion.mp4
+├── depth_zoedepth/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_zoedepth_max.csv
+├── depth_zoedepth_min.csv
+├── depth_zoedepth.mp4
+├── flow/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── flow.csv
+├── mask/
+|   ├── 000000.png
+|   ├── 000001.png
+|   ├── ...
+|   └── 000110.png
+├── mask.mp4
+├── metadata.json
+└── rgba.mp4
+```
 
 ## Roadmap
 

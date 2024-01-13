@@ -171,14 +171,17 @@ def process_video(args):
                         mask = getMaskRGB(result, c, i)
                         masks = masks + mask
         
+        # COLMAP requires Black/White masks
+        if args.subpath != '':
+            cv2.imwrite(os.path.join(args.subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
+
+        # Encode a clamped SDF in the green channel
         if args.sdf:
             sdf = getSDF(masks)
             masks[..., 1] = sdf[...,0] * 255
 
         mask_video.write( masks.astype(np.uint8) )
 
-        if args.subpath != '':
-            cv2.imwrite(os.path.join(args.subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
 
     # Mask
     mask_video.close()
@@ -194,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument('--output', '-o', help="output", type=str, default="")
     parser.add_argument('--confidence', '-c', help="confidence threshold", type=float, default=CONFIDENCE_THRESHOLD)
 
-    parser.add_argument('--sdf', '-s',action='store_true')
+    parser.add_argument('--sdf', '-s', help="Encode SDF on GREEN channel", action='store_true')
     parser.add_argument('--subpath', help="Mask Subpath to frames", type=str, default='')
 
     args = parser.parse_args()

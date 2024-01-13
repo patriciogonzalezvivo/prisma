@@ -148,7 +148,6 @@ if __name__ == '__main__':
 
     if args.extra > 1:
         args.flo = True
-        args.flow_backwards = True
 
     if args.extra > 2:
         args.npy = True
