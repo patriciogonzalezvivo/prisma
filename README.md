@@ -9,9 +9,12 @@ It's a combination of open sourced models to infer:
     * optical flow (RAFT)
     * segmentation (mmdet)
 
-Each image or video will become a folder where all the derived bands will be stored together with a `meta.json` that keep tracks of the associated data.
+## Install
 
 ```Shell
+git clone git@github.com:patriciogonzalezvivo/prisma.git
+cd prisma
+
 conda env create -f environment.yml
 conda activate prisma
 sh download_models.sh
@@ -21,6 +24,72 @@ pip install -U openmim
 mim install mmengine
 mim install "mmcv-full==1.7.1"
 ```
+
+## How it works?
+
+We start by processing an image or video. Let's start by processing an image:
+
+```bash
+python process.py -i data/gog.jpg
+```
+
+With out providing an `--output` this will create a folder with the same filename which will contain all the derived bands (`rgba`, `flow`, `mask` and `depth_*`).
+In this forlder you will find a `meta.json` file that contains all the metadata associated with the original image or video.
+
+```json
+{
+    "bands": {
+        "rgba": {
+            "url": "rgba.png"
+        },
+        "depth_patchfusion": {
+            "url": "depth_patchfusion.png",
+            "values": {
+                "min": {
+                    "value": 1.6147574186325073,
+                    "type": "float"
+                },
+                "max": {
+                    "value": 11.678544044494629,
+                    "type": "float"
+                }
+            }
+        },
+        "mask": {
+            "url": "mask.png",
+            "ids": [
+                "person",
+                "bird",
+                "cat",
+                "dog",
+                "horse",
+                "sheep",
+                "cow",
+                "elephant",
+                "bear",
+                "zebra",
+                "giraffe"
+            ]
+        }
+    },
+    "width": 934,
+    "height": 440
+}
+```
+
+Currently PRISMA supports multiple depth estimation algorithms. You can select which one to use by providing the `--depth`|`-d` argument: `depth_midas`, `depth_zoedepth`, `depth_patchfusion`, `depth_marigold` or `all`. By defualt images will be processed using `depth_patchfusion`, while videos will use `depth_zoedepth`.
+
+When processing videos, by default PRISMA creates the least ammount of data by creating a single `.png` or `.mp4` for each band. In the case of videos data like min/max values will be stored on `.cvs`.
+
+it's possible to save extra data by setting the `--extra`|`-e` level number.
+
+0. store bands as a single `.png` and `.mp4` (video have usually an associated `.csv` file)
+
+
+```bash
+
+
+Each image or video will become a folder where all the derived bands will be stored together with a `meta.json` that keep tracks of the associated data.
 
 ## Roadmap
 

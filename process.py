@@ -108,11 +108,11 @@ if __name__ == '__main__':
     data = create_metadata(folder_name)
 
     if is_video(input_path):
-        data["ext"] = "mp4"
+        extension = "mp4"
     else:
-        data["ext"] = input_filename.rsplit( ".", 1 )[ 1 ]
+        extension = "png"
 
-    name_rgba = "rgba." + data["ext"]
+    name_rgba = "rgba." + extension
     path_rgba = os.path.join(folder_name, name_rgba)
     
     # 3. Extract RGBA (only if doesn't exist)
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         args.npy = True
 
     # 5.a EXTRACT DEPTH
-        
+    depth_args = ""
     if args.ply:
         depth_args = "--ply "
 

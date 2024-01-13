@@ -45,11 +45,17 @@ def split(input_file, output_file, fps, total_frames, width, height, split):
     print("TODO")
 
 
-def prune(input_file, output_file, fps=24, subpath=""):
+def prune(input_file, output_file, fps=24, subpath=None):
     in_video = decord.VideoReader(input_file)
     width = in_video[0].shape[1]
     height = in_video[0].shape[0]
     total_frames = len(in_video)
+
+    if subpath:
+        output_folder = os.path.dirname(output_file)
+        subpath = os.path.join(output_folder, subpath)
+        if not os.path.exists(subpath):
+            os.makedirs(subpath)
 
     # Simple passthrough process to remove audio
     print("Saving video " + output_file)
@@ -57,7 +63,7 @@ def prune(input_file, output_file, fps=24, subpath=""):
     for i in tqdm( range(total_frames) ):
         curr_frame = in_video[i].asnumpy()
 
-        if subpath != '':
+        if subpath:
             write_rgb(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)
 
         out_video.write(curr_frame)
@@ -71,12 +77,6 @@ def process_image(args):
     print("Open", args.tmp, "and save it to", args.output)
     image = open_float_rgb(args.tmp)
     write_rgb(args.output, image)
-
-
-    # output_basename = args.output.rsplit( ".", 1 )[ 0 ]
-    # output_extension = args.output.rsplit( ".", 1 )[ 1 ]
-
-    # write_rgb_square(output_basename + "_square." + output_extension, image)
 
 
 def process_video(args):
@@ -94,7 +94,6 @@ def process_video(args):
 
     if args.rgbd == "none":
         os.system("cp " + args.input + " " + args.tmp)
-
         prune(args.tmp, args.output, args.fps, args.subpath)
 
     else:
@@ -123,7 +122,7 @@ if __name__ == '__main__':
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
     parser.add_argument('--tmp', '-t', help="tmp", type=str, default="tmp")
     parser.add_argument('--output', '-o', help="output", type=str, default="")
-    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default='')
+    parser.add_argument('--subpath', '-d', help="subpath to frames", type=str, default=None)
     
     parser.add_argument('--rgbd', help='Where the depth is', type=str, default='none')
     parser.add_argument('--depth', help='in case of being a RGBD', type=str, default="depth")
