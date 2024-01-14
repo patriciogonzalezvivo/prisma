@@ -40,6 +40,7 @@ import decord
 from tqdm import tqdm
 from bands.common.colmap import read_model
 from bands.common.meta import load_metadata
+from bands.common.encode import rgb_to_heat
 
 DEPTH_IMAGE_SCALING: Final = 1e4
 
@@ -49,74 +50,117 @@ def calc_focus_point(fov, width):
     focal_length = (width * 0.5) / np.tan(fov * 0.5)
     return focal_length
 
-def add_values(data, name, values):
-    if "values" in data["bands"][name]:
-        for value in data["bands"][name]["values"]:
-            if "url" in data["bands"][name]["values"][value]:
-                cvs_path = os.path.join(args.input, data["bands"][name]["values"][value]["url"])
+def extract_values(data):
+    values = {}
+
+    for band in data["bands"]:
+
+        if "values" not in data["bands"][band]:
+            continue
+        
+        for value in data["bands"][band]["values"]:
+            address = band + "_" + value
+
+            print("Extracting value:", address)
+
+            # load values from file (video)
+            if "url" in data["bands"][band]["values"][value]:
+                cvs_path = os.path.join(args.input, data["bands"][band]["values"][value]["url"])
                 lines = open(cvs_path, "r").readlines()
-                type = data["bands"][name]["values"][value]["type"]
-                if type == "int":
-                    values[value] = [int(line) for line in lines]
-                elif type == "float":
-                    values[value] = [float(line) for line in lines]
-                elif type == "vec2":
-                    values[value] = [[float(v) for v in line.split(",")] for line in lines]
+                t = data["bands"][band]["values"][value]["type"]
 
+                if t == "int":
+                    values[address] = [int(line) for line in lines]
+                elif t == "float":
+                    values[address] = [float(line) for line in lines]
+                elif t == "vec2":
+                    values[address] = [[float(v) for v in line.split(",")] for line in lines]
 
-def add_band(data, name, values, path="bands/textures/"):
-    width = int(data["width"] / 2)
-    height = int(data["height"] / 2)
-    frames = int(data["frames"])
+                for i in range(len(values[address])):
+                    rr.set_time_sequence("frame", i)
+                    rr.log("bands/values/" + address, rr.TimeSeriesScalar(values[address][i]), time=i)
+                    
+            # load value from json (image)
+            elif "value" in data["bands"][band]["values"][value]:
 
-    band_video = None
-    if "url" in data["bands"][name]:
-        if not data["bands"][name]["url"].endswith(".mp4"):
-            return
-        band_path = os.path.join(args.input, data["bands"][name]["url"])
-        band_video = decord.VideoReader(band_path)
+                rr.set_time_sequence("frame", 0)
+
+                t = data["bands"][band]["values"][value]["type"]
+                value = data["bands"][band]["values"][value]["value"]
+
+                if t == "int":
+                    value = int(value)
                 
-    frame_idx = 0
-    for f in tqdm( range( frames ), desc=name ):
-        rr.set_time_sequence("frame", frame_idx)
+                elif t == "float":
+                    value = float(value)
 
-        if band_video is not None:
-            band = band_video[f].asnumpy()
+                elif t == "vec2":
+                    value = [float(v) for v in value.split(",")]
 
-            if name == "depth":
-                band = cv2.cvtColor(band, cv2.COLOR_BGR2GRAY)
-                depth_min = 1.0
-                depth_max = 10.0
-                if "u_depth_min" in values:
-                    depth_min = values["u_depth_min"][frame_idx]
-                if "u_depth_max" in values:
-                    depth_max = values["u_depth_max"][frame_idx]
+                if value is not None:
+                    rr.log("bands/values/" + address, rr.TimeSeriesScalar(value))
+                    values[address] = value
 
-                band = depth_min + band * (depth_max - depth_min)
-                rr.log_depth_image(path + "depth", band * 100.0, meter=DEPTH_IMAGE_SCALING)
+    return values
+
+
+def add_band_image(data, band, img, path="bands/textures/"):
+    if band.startswith("depth"):
+        depth_img = rgb_to_heat(img)
+        depth_min = 1.0
+        depth_max = 10.0
+
+        if band + "_min" in data["values"]:
+            depth_min = data["values"][band + "_min"]
+        if band + "_max" in data["values"]:
+            depth_max = data["values"][band + "_max"]
+
+        depth_img = depth_min + depth_img * (depth_max - depth_min)
+        rr.log(path + band, rr.DepthImage(depth_img, meter=DEPTH_IMAGE_SCALING))
+
+    else:
+        rr.log(path + band, rr.Image(img).compress(jpeg_quality=95))
+
+
+def add_band(data, band, path="bands/textures/"):
+
+    if "url" in data["bands"][band]:
+
+        # If it's a video
+        if data["bands"][band]["url"].endswith(".mp4"):
+            frames = int(data["frames"])
+
+            band_path = os.path.join(args.input, data["bands"][band]["url"])
+            band_video = decord.VideoReader(band_path)
                 
-            elif name == "mask":
-                band = cv2.cvtColor(band, cv2.COLOR_BGR2GRAY)
-                rr.log_segmentation_image(path + "mask", band)
-            else:
-                band = cv2.resize(band, dsize=(width, height), interpolation=cv2.INTER_AREA)
-                rr.log_image(path + name, band)
+            frame_idx = 0
+            for f in tqdm( range( frames ), desc=band ):
+                rr.set_time_sequence("frame", frame_idx)
+                band_frame = band_video[f].asnumpy()
+                add_band_image(data, band, band_frame, path=path)
+                frame_idx += 1
 
-        frame_idx += 1
+        # If it's an image
+        else:
+            rr.set_time_sequence("frame", 0)
+
+            band_path = os.path.join(args.input, data["bands"][band]["url"])
+            band_img = cv2.cvtColor(cv2.imread(band_path), cv2.COLOR_BGR2RGB)
+            add_band_image(data, band, band_img, path=path)
 
 
 def init(args):
     data = load_metadata(args.input)
 
-    rr.log_view_coordinates("bands", up="-Y", timeless=True)
-            
-    sparse_path = os.path.join( args.input, "sparse", "0" )
-    if os.path.isdir( sparse_path ):
-        cameras, images, points3D = read_model(sparse_path, ext=".bin")
+    rr.log("bands", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, timeless=True)
 
     # Iterate through images (video frames) logging data related to each frame.
     images_path = os.path.join(args.input, "images")
-    if os.path.isdir( sparse_path ):
+    
+    # COLMAP's sparse reconstruction
+    sparse_path = os.path.join( args.input, "sparse", "0" )
+    if os.path.isdir( sparse_path ) and os.path.isdir( sparse_path ):
+        cameras, images, points3D = read_model(sparse_path, ext=".bin")
         for image in sorted(images.values(), key=lambda im: im.name):  # type: ignore[no-any-return]
             image_file = os.path.join(images_path, image.name)
             if not os.path.exists(image_file):
@@ -142,9 +186,9 @@ def init(args):
             point_colors = [point.rgb for point in visible_xyzs]
             point_errors = [point.error for point in visible_xyzs]
 
-            rr.log_scalar("camera/reproj_err", np.mean(point_errors), color=[240, 45, 58])
+            # rr.log_scalar("camera/reproj_err", np.mean(point_errors), color=[240, 45, 58])
 
-            rr.log_points("points", points, colors=point_colors, ext={"error": point_errors})
+            rr.log("points", rr.Points3D(points, colors=point_colors, ext={"error": point_errors}))
 
             # COLMAP's camera transform is "camera from world"
             rr.log_transform3d("camera", rr.TranslationRotationScale3D(image.tvec, rr.Quaternion(xyzw=quat_xyzw)), from_parent=True)
@@ -152,77 +196,75 @@ def init(args):
 
             # Log camera intrinsics
             if camera.model == "PINHOLE":
-                rr.log_pinhole(
+                rr.log(
                     "camera/rgba",
-                    width=camera.width,
-                    height=camera.height,
-                    focal_length_px=camera.params[:2],
-                    principal_point_px=camera.params[2:],
+                    rr.Pinhole(
+                        resolution=[camera.width, camera.height],
+                        focal_length=camera.params[:2],
+                        principal_point=camera.params[2:],)
                 )
             elif camera.model == "SIMPLE_PINHOLE":
-                rr.log_pinhole(
+                rr.log(
                     "camera/rgba",
-                    width=camera.width,
-                    height=camera.height,
-                    focal_length_px=camera.params[:2],
-                    principal_point_px=camera.params[1:],
+                    rr.Pinhole(
+                        resolution=[camera.width, camera.height],
+                        focal_length_px=camera.params[:2],
+                        principal_point_px=camera.params[1:],
+                    )
                 )
-            rr.log_image_file("camera/rgba", img_path=image_file)
-            rr.log_points("camera/rgba/keypoints", visible_xys, colors=[34, 138, 167])
+            rr.log("camera/rgba", rr.ImageEncoded(path=image_file))
+            rr.log("camera/rgba/keypoints", rr.Points3D(visible_xys, colors=[34, 138, 167]))
             
-    values = {}
-
     # extract values from bands
-    for band in data["bands"]:
-        add_values(data, band, values)
-
-    print("Found uniforms:", values.keys())
+    data["values"] = extract_values(data)
 
     # Attempt to reconstruct camera intrinsics
-    width = int(data["width"] / 2)
-    height = int(data["height"] / 2)
+    width = int(data["width"])
+    height = int(data["height"])
     
-    fps = data["fps"]
     u_cen = float(width / 2)
     v_cen = float(height / 2)
     f_len = float(height * width) ** 0.5
     
-    if "perspective" in data["bands"]:
-        if "u_fov" in data["bands"]["perspective"]:
-            fov = data["bands"]["perspective"]["values"]["u_fov"]["value"]
-            f_len = calc_focus_point(fov, width, height)
-            print("FOV:", fov)
-            print("focal length:", f_len)
+    # if "perspective" in data["bands"]:
+    #     if "u_fov" in data["bands"]["perspective"]:
+    #         fov = data["bands"]["perspective"]["values"]["u_fov"]["value"]
+    #         f_len = calc_focus_point(fov, width, height)
+    #         print("FOV:", fov)
+    #         print("focal length:", f_len)
 
-    print("Setting camera intrinsics to : ", width, height, f_len, u_cen, v_cen)
+    # print("Setting camera intrinsics to : ", width, height, f_len, u_cen, v_cen)
 
-    frames = data["frames"]
-    for frame_idx in tqdm( range( frames ) ):
-        rr.set_time_sequence("frame", frame_idx)
+    if "frames" in data:
+        # fps = data["fps"]
+        frames = data["frames"]
+        for frame_idx in tqdm( range( frames ) ):
+            rr.set_time_sequence("frame", frame_idx)
 
-        # log float values
-        for value in values:
-            if isinstance(values[value][frame_idx], float):
-                rr.log_scalar("bands/uniforms/" + value, values[value][frame_idx])
+            # log float values
+            for value in data["values"]:
+                if isinstance(data["values"][value][frame_idx], float):
+                    rr.log("values" + value, data["values"][value][frame_idx])
 
-        # log camera
-        if "u_principal_point" in values:
-            pp = values["u_principal_point"][frame_idx]
-            rr.log_view_coordinates("bands/textures", xyz="RDF")
-            u_cen = int(width/2 + pp[0] * width/2)
-            v_cen = int(height/2 + pp[1] * height/2)
+            # log camera
+            if "principal_point" in data["values"]:
+                pp = data["values"]["principal_point"][frame_idx]
+                rr.log_view_coordinates("bands/textures", xyz="RDF")
+                u_cen = int(width/2 + pp[0] * width/2)
+                v_cen = int(height/2 + pp[1] * height/2)
 
-        rr.log_pinhole(
-            "bands/textures",
-            width=width,
-            height=height,
-            focal_length_px=[f_len, f_len],
-            principal_point_px=[u_cen, v_cen]
-        )
+            rr.log(
+                "bands/textures",
+                rr.Pinhole(
+                        resolution=[width, height],
+                        focal_length=[f_len, f_len],
+                        principal_point=[u_cen, v_cen],
+                    )
+            )
 
     # log bands
     for band in data["bands"]:
-        add_band(data, band, values)
+        add_band(data, band)
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

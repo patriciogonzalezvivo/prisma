@@ -74,10 +74,13 @@ def create_metadata(path):
 
     else:
         metadata_path = os.path.join(folder, META_FILE)
-        print("Creating metadata for {} as {}".format(path, metadata_path))
 
-        with open( metadata_path, 'w') as metadata_file:
-            metadata_file.write( json.dumps({ "bands": { } }, indent=4) )
+        if os.path.exists(metadata_path):
+            print("Metadata already exists for {}".format(path))
+        else:
+            print("Creating metadata for {} as {}".format(path, metadata_path))
+            with open( metadata_path, 'w') as metadata_file:
+                metadata_file.write( json.dumps({ "bands": { } }, indent=4) )
         
     return load_metadata(metadata_path)
 
