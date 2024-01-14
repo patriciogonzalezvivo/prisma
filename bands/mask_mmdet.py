@@ -47,14 +47,11 @@ from common.encode import hue_to_rgb
 BAND = "mask"
 
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
-WIDTH = int(1280)
-HEIGHT = int(720)
 CONFIG = 'models/solov2_r101_fpn_3x_coco.py'
 MODEL  = 'models/solov2_r101_fpn_3x_coco_20220511_095119-c559a076.pth'
 # CLASSES = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 CLASSES = ['person', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe']
 CONFIDENCE_THRESHOLD = 0.7
-
 
 data = None
 model = None
@@ -141,9 +138,6 @@ def process_video(args):
     height = in_video[0].shape[0]
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
-
-    width /= 2
-    height /= 2
 
     output_path = args.output
     output_folder = os.path.dirname(output_path)

@@ -28,6 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import numpy as np
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
@@ -134,6 +135,15 @@ if __name__ == '__main__':
 
     else:
         data["width"], data["height"] = get_image_size(path_rgba)
+
+    # Attempt to reconstruct camera intrinsics 
+    # TODO: Use model for single images or COLMAP 
+    if "principal_point" not in data:
+        data["principal_point"] = [float(data["width"] / 2), float(data["height"] / 2)]
+    if "focal_length" not in data:
+        data["focal_length"] = float(data["height"] * data["width"]) ** 0.5
+    if "field_of_view" not in data:
+        data["field_of_view"] = 2 * np.arctan(0.5 * data["height"] / data["focal_length"]) * 180 / np.pi
 
     write_metadata(folder_name, data)
     

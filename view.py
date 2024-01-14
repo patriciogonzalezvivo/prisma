@@ -235,13 +235,12 @@ def init(args):
     # extract values from bands
     data["values"] = extract_values(data)
 
-    # Attempt to reconstruct camera intrinsics
     width = int(data["width"])
     height = int(data["height"])
-    
-    u_cen = float(width / 2)
-    v_cen = float(height / 2)
-    f_len = float(height * width) ** 0.5
+    u_cen = data["principal_point"][0]
+    v_cen = data["principal_point"][1]
+    f_len = data["focal_length"]
+    f_v = data["field_of_view"]
     
     # if "perspective" in data["bands"]:
     #     if "u_fov" in data["bands"]["perspective"]:
