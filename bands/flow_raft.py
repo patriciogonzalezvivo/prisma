@@ -107,6 +107,31 @@ def compute_fwdbwd_mask(fwd_flow, bwd_flow, alpha_1=0.05, alpha_2=0.5):
     return fwd_mask, bwd_mask
 
 
+def write_flow(args, fwd_flow, fwd_flow_video, max_disps, idx, bwd_flow=None, bwd_flow_video=None, fwd_mask=None, bwd_mask=None):
+    flow_pixels, max_disp = process_flow(fwd_flow)
+    fwd_flow_video.write(flow_pixels)
+    max_disps.append(max_disp)
+
+    if args.backwards and bwd_flow_video:
+        bwd_flow_pixels, _, _ = process_flow(bwd_flow)
+        bwd_flow_video.write(bwd_flow_pixels)
+
+    if args.subpath != '':
+        write_flow(os.path.join(args.subpath + '_fwd', '%04d.flo' % idx), fwd_flow)
+        if args.backwards:
+            write_flow(os.path.join(args.subpath + '_bwd', '%04d.flo' % idx), bwd_flow)
+
+    if args.ds_subpath != '':
+        cv2.imwrite(os.path.join(args.ds_subpath + '_fwd', '%04d.png' % idx), encode_flow(fwd_flow, fwd_mask))
+        if args.backwards:
+            cv2.imwrite(os.path.join(args.ds_subpath + '_bwd', '%04d.png' % idx), encode_flow(bwd_flow, bwd_mask))
+
+    if args.vis_subpath != '':
+        cv2.imwrite(os.path.join(args.vis_subpath + '_fwd', '%04d.jpg' % idx), flow_viz.flow_to_image(fwd_flow))
+        if args.backwards:
+            cv2.imwrite(os.path.join(args.vis_subpath + '_bwd', '%04d.jpg' % idx), flow_viz.flow_to_image(bwd_flow))
+
+
 def process_video(args):
     global model
     
@@ -118,14 +143,18 @@ def process_video(args):
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
     
-    out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
+    fwd_flow_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
 
+    bwd_flow_video = None
     if args.backwards:
-        out_bk_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_basename +'_bwd.mp4' )
+        bwd_flow_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_basename +'_bwd.mp4' )
 
     max_disps = []
 
     prev_frame = None
+    bwd_flow = None
+    fwd_mask = None
+    bwd_mask = None
     for i in tqdm( range(total_frames) ):
         frame = in_video[i].asnumpy()
         ds_frame = cv2.resize(frame, None, fx=args.scale, fy=args.scale, interpolation=cv2.INTER_CUBIC)
@@ -144,44 +173,25 @@ def process_video(args):
                     bwd_flow = padder.unpad(flow_up[1]).permute(1,2,0).cpu().numpy()
 
                 if args.ds_subpath != '':
-                    mask_fwd, mask_bwd = compute_fwdbwd_mask(fwd_flow, bwd_flow)
-        else:
-            fwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
-            bwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
+                    fwd_mask, bwd_mask = compute_fwdbwd_mask(fwd_flow, bwd_flow)
 
-            if args.ds_subpath != '':
-                mask_fwd = np.zeros(frame[..., 0].shape, dtype=bool)
-                mask_bwd = np.zeros(frame[..., 0].shape, dtype=bool)
-
-        flow_pixels, max_disp = process_flow(fwd_flow)
-        out_video.write(flow_pixels)
-        max_disps.append(max_disp)
-
-        if args.backwards:        
-            bwd_flow_pixels, _, _ = process_flow(bwd_flow)
-            out_bk_video.write(bwd_flow_pixels)
-
-        if args.subpath != '':
-            write_flow(os.path.join(args.subpath + '_fwd', '%04d.flo' % i), fwd_flow)
-            if args.backwards:
-                write_flow(os.path.join(args.subpath + '_bwd', '%04d.flo' % i), bwd_flow)
-
-        if args.ds_subpath != '':
-            cv2.imwrite(os.path.join(args.ds_subpath + '_fwd', '%04d.png' % i), encode_flow(fwd_flow, mask_fwd))
-            if args.backwards:
-                cv2.imwrite(os.path.join(args.ds_subpath + '_bwd', '%04d.png' % i), encode_flow(bwd_flow, mask_bwd))
-
-        if args.vis_subpath != '':
-            cv2.imwrite(os.path.join(args.vis_subpath + '_fwd', '%04d.jpg' % i), flow_viz.flow_to_image(fwd_flow))
-            if args.backwards:
-                cv2.imwrite(os.path.join(args.vis_subpath + '_bwd', '%04d.jpg' % i), flow_viz.flow_to_image(bwd_flow))
+            write_flow(args, fwd_flow, fwd_flow_video, max_disps, i, bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, fwd_mask=fwd_mask, bwd_mask=bwd_mask)
 
         prev_frame = curr_frame.clone()
+
+    fwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
+    bwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
+
+    if args.ds_subpath != '':
+        fwd_mask = np.zeros(frame[..., 0].shape, dtype=bool)
+        bwd_mask = np.zeros(frame[..., 0].shape, dtype=bool)
+    
+    write_flow(args, fwd_flow, fwd_flow_video, max_disps, i, bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, fwd_mask=fwd_mask, bwd_mask=bwd_mask)
     
     # Save and close video
-    out_video.close()
+    fwd_flow_video.close()
     if args.backwards:
-        out_bk_video.close()
+        bwd_flow_video.close()
 
     # Save max disatances per frame as a CSV file
     csv_dist = open( output_basename +'.csv' , 'w')
