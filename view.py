@@ -42,6 +42,9 @@ from bands.common.colmap import read_model
 from bands.common.meta import load_metadata
 from bands.common.encode import rgb_to_heat
 
+
+BANDS_TEXTURES = "bands/textures/"
+BANDS_VALUES = "bands/values/"
 DEPTH_IMAGE_SCALING: Final = 1e4
 
 # calculate focus point from field of view
@@ -49,6 +52,7 @@ def calc_focus_point(fov, width):
     fov = fov * np.pi / 180.0
     focal_length = (width * 0.5) / np.tan(fov * 0.5)
     return focal_length
+
 
 def extract_values(data):
     values = {}
@@ -78,7 +82,7 @@ def extract_values(data):
 
                 for i in range(len(values[address])):
                     rr.set_time_sequence("frame", i)
-                    rr.log("bands/values/" + address, rr.TimeSeriesScalar(values[address][i]), time=i)
+                    rr.log(BANDS_VALUES + address, rr.TimeSeriesScalar(values[address][i]))
                     
             # load value from json (image)
             elif "value" in data["bands"][band]["values"][value]:
@@ -98,31 +102,43 @@ def extract_values(data):
                     value = [float(v) for v in value.split(",")]
 
                 if value is not None:
-                    rr.log("bands/values/" + address, rr.TimeSeriesScalar(value))
+                    rr.log(BANDS_VALUES + address, rr.TimeSeriesScalar(value))
                     values[address] = value
 
     return values
 
 
-def add_band_image(data, band, img, path="bands/textures/"):
+def add_band_image(data, band, img, index=None):
+    width = int(data["width"])
+    height = int(data["height"])
+
+    img = cv2.resize(img, (width, height))
+
     if band.startswith("depth"):
         depth_img = rgb_to_heat(img)
         depth_min = 1.0
         depth_max = 10.0
 
-        if band + "_min" in data["values"]:
-            depth_min = data["values"][band + "_min"]
-        if band + "_max" in data["values"]:
-            depth_max = data["values"][band + "_max"]
+        if index is not None:
+            if band + "_min" in data["values"]:
+                depth_min = data["values"][band + "_min"][index]
+            if band + "_max" in data["values"]:
+                depth_max = data["values"][band + "_max"][index]
+
+        else:
+            if band + "_min" in data["values"]:
+                depth_min = data["values"][band + "_min"]
+            if band + "_max" in data["values"]:
+                depth_max = data["values"][band + "_max"]
 
         depth_img = depth_min + depth_img * (depth_max - depth_min)
-        rr.log(path + band, rr.DepthImage(depth_img, meter=DEPTH_IMAGE_SCALING))
+        rr.log(BANDS_TEXTURES + band, rr.DepthImage(depth_img, meter=DEPTH_IMAGE_SCALING))
 
     else:
-        rr.log(path + band, rr.Image(img).compress(jpeg_quality=95))
+        rr.log(BANDS_TEXTURES + band, rr.Image(img).compress(jpeg_quality=95))
 
 
-def add_band(data, band, path="bands/textures/"):
+def add_band(data, band):
 
     if "url" in data["bands"][band]:
 
@@ -132,12 +148,13 @@ def add_band(data, band, path="bands/textures/"):
 
             band_path = os.path.join(args.input, data["bands"][band]["url"])
             band_video = decord.VideoReader(band_path)
-                
+
             frame_idx = 0
             for f in tqdm( range( frames ), desc=band ):
                 rr.set_time_sequence("frame", frame_idx)
+
                 band_frame = band_video[f].asnumpy()
-                add_band_image(data, band, band_frame, path=path)
+                add_band_image(data, band, band_frame, index=frame_idx)
                 frame_idx += 1
 
         # If it's an image
@@ -146,7 +163,7 @@ def add_band(data, band, path="bands/textures/"):
 
             band_path = os.path.join(args.input, data["bands"][band]["url"])
             band_img = cv2.cvtColor(cv2.imread(band_path), cv2.COLOR_BGR2RGB)
-            add_band_image(data, band, band_img, path=path)
+            add_band_image(data, band, band_img)
 
 
 def init(args):
@@ -241,20 +258,15 @@ def init(args):
         for frame_idx in tqdm( range( frames ) ):
             rr.set_time_sequence("frame", frame_idx)
 
-            # log float values
-            for value in data["values"]:
-                if isinstance(data["values"][value][frame_idx], float):
-                    rr.log("values" + value, data["values"][value][frame_idx])
-
             # log camera
             if "principal_point" in data["values"]:
                 pp = data["values"]["principal_point"][frame_idx]
-                rr.log_view_coordinates("bands/textures", xyz="RDF")
+                rr.log_view_coordinates(BANDS_TEXTURES, xyz="RDF")
                 u_cen = int(width/2 + pp[0] * width/2)
                 v_cen = int(height/2 + pp[1] * height/2)
 
             rr.log(
-                "bands/textures",
+                BANDS_TEXTURES,
                 rr.Pinhole(
                         resolution=[width, height],
                         focal_length=[f_len, f_len],

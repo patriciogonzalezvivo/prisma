@@ -132,8 +132,8 @@ def process_video(args):
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
 
-    width /= 2
-    height /= 2
+    # width /= 2
+    # height /= 2
 
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
     output_folder = os.path.dirname(args.output)
