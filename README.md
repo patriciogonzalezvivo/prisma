@@ -83,7 +83,13 @@ In the forlder you will find a `metadata.json` file that contains all the metada
         }
     },
     "width": 934,
-    "height": 440
+    "height": 440,
+    "principal_point": [
+        467.0,
+        220.0
+    ],
+    "focal_length": 641.0616195031489,
+    "field_of_view": 37.88246641919117
 }
 ```
 
