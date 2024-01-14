@@ -35,7 +35,7 @@ import decord
 from tqdm import tqdm
 
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
-from common.io import open_rgb, open_float_rgb, check_overwrite, write_rgb, write_rgb_square,  VideoWriter
+from common.io import open_float_rgb, check_overwrite, write_rgb, VideoWriter
 
 BAND = "rgba"
 

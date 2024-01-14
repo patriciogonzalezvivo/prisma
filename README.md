@@ -27,6 +27,8 @@ mim install "mmcv-full==1.7.1"
 
 ## How it works?
 
+### a. Process
+
 We start by processing an image or video. Let's start by processing an image:
 
 ```bash
@@ -168,10 +170,28 @@ rocky/
 └── rgba.mp4
 ```
 
+### b. Visualize
+
+View the resulting bands from the processed image/video using [ReRun](https://www.rerun.io/):
+
+```bash
+
+```bash
+python view.py -i data/rocky
+```
+
+### c. Concatenate bands
+
+In order to export the bands as a single image or video you can use the `concat.py` script:
+
+```bash
+python concat.py -i data/gog -o test.png
+```
+
+
 ## Roadmap
 
-[ ] Default algorithm for depth / Generic depth band function
-[ ] Add fov field (default, from EXIF focal length, or COLMAP camera intrinsecs )
+[ ] Derive Field of View from: EXIF or COLMAP
 [ ] Suport from Polycam RGB-D
 [ ] COLMAP camera paths
 
