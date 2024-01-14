@@ -32,13 +32,13 @@ import numpy as np
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
-from bands.common.meta import create_metadata, is_video, add_band, write_metadata
+from bands.common.meta import create_metadata, is_video, add_band, write_metadata, load_metadata
 
 import warnings
 warnings.filterwarnings("ignore")
 
 # Default values
-DEPTH_VIDEO_DEFUALT = "depth_zoedepth"
+DEPTH_VIDEO_DEFAULT = "depth_zoedepth"
 DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
 DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion"]
 DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
@@ -48,7 +48,7 @@ SUBFOLDERS = {
     "rgba": "images",
     "mask_mmdet": "mask",
     "flow_raft": "flow",
-    "depth_zoedepth": "depth",
+    "depth_zoedepth": "depth_zoedepth",
     "depth_midas": "depth_midas",
     "depth_marigold": "depth_marigold",
     "depth_patchfusion": "depth_patchfusion",
@@ -173,19 +173,16 @@ if __name__ == '__main__':
     # Choose defualt depth band
     if args.depth == None:
         if is_video(input_path):
-            args.depth = DEPTH_VIDEO_DEFUALT
+            args.depth = DEPTH_VIDEO_DEFAULT
         else:
             args.depth = DEPTH_IMAGE_DEFAULT
 
     # Process depth
     if args.depth == "all":
-
         for band in DEPTH_BANDS:
             extra_args = depth_args
-
             if band == "depth_patchfusion" and is_video(input_path):
                 extra_args += "--mode=p49 "
-
             run(band, folder_name, subpath=args.extra, extra_args=extra_args)
     else:
         extra_args = depth_args
@@ -194,6 +191,17 @@ if __name__ == '__main__':
             extra_args += "--mode=p49 "
 
         run(args.depth, folder_name, subpath=args.extra, extra_args=extra_args)
+
+    # # Add a default depth band
+    # data = load_metadata(folder_name)
+    # if args.depth == "all":
+    #     if is_video(input_path):
+    #         data["bands"]["depth"] = data["bands"][DEPTH_VIDEO_DEFAULT]
+    #     else:
+    #         data["bands"]["depth"] = data["bands"][DEPTH_IMAGE_DEFAULT]
+    # else:
+    #     data["bands"]["depth"] = data["bands"][args.depth]
+    # write_metadata(folder_name, data)
     
     # 5.b EXTRACT MASK (mmdet)
     run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
