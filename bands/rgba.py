@@ -34,6 +34,8 @@ import argparse
 import decord
 from tqdm import tqdm
 
+import numpy as np
+
 from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.io import open_float_rgb, check_overwrite, write_rgb, VideoWriter
 
@@ -62,6 +64,7 @@ def prune(input_file, output_file, fps=24, subpath=None):
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_file)
     for i in tqdm( range(total_frames) ):
         curr_frame = in_video[i].asnumpy()
+        curr_frame = 255.0 - np.clip(curr_frame, 0.0, 255.0)
 
         if subpath:
             write_rgb(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)

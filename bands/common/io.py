@@ -123,6 +123,13 @@ def write_rgb(path, rgb):
     """Write RGB image to png file."""
     rgb = cv2.cvtColor((rgb * 255).astype(np.uint8), cv2.COLOR_RGB2BGR)
     cv2.imwrite(path, rgb)
+    
+    # # check if rgb is an instance of PIL Image
+    # if isinstance(rgb, Image.Image):
+    #     rgb.save(path)
+    # else:
+    #     result = Image.fromarray((rgb * 255).astype(np.uint8))
+    #     result.save(path)
 
 
 # Make image squared of a specific resolution by adding padding into the smaller side 
@@ -214,6 +221,29 @@ def write_pcl(filename, depth, rgb, flip=False):
 
     pcl = create_point_cloud(depth, rgb.shape[1]/2, rgb.shape[0]/2)
     save_point_cloud(pcl.reshape((-1, 3)), rgb.reshape(-1, 3), filename)
+
+
+def extract_frames_from_video(video_path, output, extension="jpg", invert=None, fps=None):
+    import subprocess
+    
+    outpattern = os.path.join(output, "%03d." + extension)
+
+    vf = "yadif"
+    if fps is not None:
+        vf = f"{vf},fps={fps}"
+
+    if invert is not None:
+        vf = f"{vf},negate"
+
+    command = ["ffmpeg",
+               "-y",
+               "-i", video_path,
+               "-q:v", str(1),
+               "-vf", vf,
+               outpattern]
+    print(command)
+
+    subprocess.run(command)
 
 
 def make_video(filename, folder=".", fps=24, codec="libx264", pix_fmt="yuv420p", crf=15):

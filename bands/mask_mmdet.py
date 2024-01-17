@@ -167,7 +167,7 @@ def process_video(args):
         
         # COLMAP requires Black/White masks
         if args.subpath != '':
-            cv2.imwrite(os.path.join(args.subpath, "{:05d}.png".format(f)), masks.astype(np.uint8))
+            cv2.imwrite(os.path.join(args.subpath, "{:05d}.png".format(f)), (255.0-masks).astype(np.uint8))
 
         # Encode a clamped SDF in the green channel
         if args.sdf:

@@ -58,7 +58,7 @@ SUBFOLDERS = {
 # Run band model
 def run(band, input_folder, output_file="", subpath=False, extra_args = ""):
     print("\n# ", band.upper())
-    cmd = "CUDA_VISIBLE_DEVICES=0 python3 bands/" + band + ".py -i " + input_folder
+    cmd = "python3 bands/" + band + ".py -i " + input_folder
     if output_file != "":
         cmd += " --output " + output_file
 
