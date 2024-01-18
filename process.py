@@ -214,6 +214,8 @@ if __name__ == '__main__':
             flow_args += "--backwards "
         run("flow_raft", folder_name, subpath=args.flo, extra_args=flow_args)
 
+        run("camera_pose", folder_name, subpath=True)
+
 
         
 

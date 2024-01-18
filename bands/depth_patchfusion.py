@@ -257,7 +257,7 @@ if __name__ == "__main__":
         # IF the input is a PRISMA folder it can use the metadata defaults
         print("PRISMA metadata found and loaded")
         args.input = get_url(args.input, data, "rgba")
-        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension="png")
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_extension="png")
 
     # Check if the output folder exists
     check_overwrite(args.output)

@@ -64,10 +64,9 @@ def prune(input_file, output_file, fps=24, subpath=None):
     out_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_file)
     for i in tqdm( range(total_frames) ):
         curr_frame = in_video[i].asnumpy()
-        curr_frame = 255.0 - np.clip(curr_frame, 0.0, 255.0)
 
         if subpath:
-            write_rgb(os.path.join(subpath, str(i).zfill(6) + ".png"), curr_frame)
+            write_rgb(os.path.join(subpath, str(i).zfill(6) + ".png"), 255.0 - np.clip(curr_frame, 0.0, 255.0))
 
         out_video.write(curr_frame)
     out_video.close()
@@ -138,7 +137,7 @@ if __name__ == '__main__':
         # IF the input is a PRISMA folder it can use the metadata defaults
         print("PRISMA metadata found and loaded")
         args.tmp = get_url(args.input, data, "rgba")
-        args.output = get_target(args.input, data, band=BAND, target=args.output, force_image_extension='png')
+        args.output = get_target(args.input, data, band=BAND, target=args.output, force_extension='png')
         if args.rgbd:
             args.depth = get_target(args.input, data, band='depth', target=args.depth)
     else:

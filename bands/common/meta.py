@@ -90,7 +90,7 @@ def is_video(path):
     return path.endswith('.mp4')
 
 
-def get_target(path, metadata, band="rgba", target="", force_image_extension=None):
+def get_target(path, metadata, band="rgba", target="", force_extension=None):
     """Get the target path for a given path and band."""
 
     if os.path.isdir( target ):
@@ -101,8 +101,8 @@ def get_target(path, metadata, band="rgba", target="", force_image_extension=Non
     input_filename = os.path.basename(path)
     input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
 
-    if force_image_extension and not is_video(path):
-        input_extension = force_image_extension
+    if force_extension and not is_video(path):
+        input_extension = force_extension
 
     target_filename = band + "." + input_extension
 
