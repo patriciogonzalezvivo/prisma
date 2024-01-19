@@ -65,10 +65,11 @@ def check_overwrite(path):
 
 def get_check_overwrite(path):
     """Check if a file exists and ask the user if it can be overwritten."""
+    
     if os.path.exists(path):
         print("File exists: " + path)
         answer = input("Do you want to over write it? [y/N]: ") 
-        return answer != "y"
+        return answer == "y"
     
     return True
 

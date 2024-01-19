@@ -52,6 +52,7 @@ SUBFOLDERS = {
     "depth_midas": "depth_midas",
     "depth_marigold": "depth_marigold",
     "depth_patchfusion": "depth_patchfusion",
+    "camera_colmap": "sparse"
 }
 
 
@@ -214,7 +215,7 @@ if __name__ == '__main__':
             flow_args += "--backwards "
         run("flow_raft", folder_name, subpath=args.flo, extra_args=flow_args)
 
-        run("camera_pose", folder_name, subpath=True)
+        run("camera_colmap", folder_name, subpath=True)
 
 
         

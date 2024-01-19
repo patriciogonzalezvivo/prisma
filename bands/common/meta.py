@@ -106,7 +106,7 @@ def get_target(path, metadata, band="rgba", target="", force_extension=None):
 
     target_filename = band + "." + input_extension
 
-    if target == "":
+    if target == "" or os.path.isdir( target ):
         target = os.path.join(input_folder, target_filename)
 
     if metadata:

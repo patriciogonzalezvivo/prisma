@@ -41,11 +41,10 @@ from common.io import check_overwrite, create_folder, get_check_overwrite
 BAND = "camera_pose"
 data = None
 
-def run_colmap(args):
-    create_folder(args.sparse_folder)
+def process_video(args):
 
-    # Feature extraction
     if get_check_overwrite(args.sparse_folder):
+        create_folder(args.sparse_folder)
 
         # Extract features
         feature_extractor_command = [
@@ -65,7 +64,6 @@ def run_colmap(args):
             feature_extractor_command += [
                 "--ImageReader.mask_path", args.mask_folder,
             ]
-
         subprocess.run(feature_extractor_command)
 
         # Match features
@@ -78,79 +76,83 @@ def run_colmap(args):
         ]
         subprocess.run(matcher_command)
 
-        mapper_command = [
-            "colmap", "mapper",
-            "--database_path", args.database_path,
-            "--image_path", args.rgba_folder,
-            "--output_path", args.sparse_folder,
-            "--Mapper.multiple_models", str(0), 
-            "--Mapper.num_threads", str(16),
-            "--Mapper.init_min_tri_angle", str(4),
-            "--Mapper.extract_colors", str(1),
-            "--Mapper.ba_local_max_refinements", str(1),
-            "--Mapper.ba_global_max_refinements", str(1),
-            "--Mapper.ba_global_function_tolerance=0.000001",
-        ]
-
         # Reconstruct sparse
-        try:
-            subprocess.run(mapper_command, check=True)
-        except subprocess.CalledProcessError:
-            print("mapper failed. relaxing search for initial pair.")
-            mapper_command += [
-                "--Mapper.init_max_forward_motion", str(1.0),
-                "--Mapper.init_min_triangle", str(4),
+        if os.path.exists(args.sparse_folder):
+            mapper_command = [
+                "colmap", "mapper",
+                "--database_path", args.database_path,
+                "--image_path", args.rgba_folder,
+                "--output_path", args.sparse_folder,
+                "--Mapper.multiple_models", str(0), 
+                "--Mapper.num_threads", str(16),
+                "--Mapper.init_min_tri_angle", str(4),
+                "--Mapper.extract_colors", str(1),
+                "--Mapper.ba_local_max_refinements", str(1),
+                "--Mapper.ba_global_max_refinements", str(1),
+                "--Mapper.ba_global_function_tolerance=0.000001",
             ]
-            subprocess.run(mapper_command, check=True)
-        
-    # Bundle adjustment
-    if args.colmap_refine:
-        bundel_adjuster_command = [
-            "colmap",
-            "bundle_adjuster",
-            "--input_path", args.sparse_folder + "/0",
-            "--output_path", args.sparse_folder + "/0",
-            "--BundleAdjustment.refine_principal_point", str(1)
-        ]
-        subprocess.run(bundel_adjuster_command)
+            subprocess.run(mapper_command)
+            # try:
+            #     subprocess.run(mapper_command, check=True)
+            # except subprocess.CalledProcessError:
+            #     print("mapper failed. relaxing search for initial pair.")
+            #     mapper_command += [
+            #         "--Mapper.init_max_forward_motion", str(1.0),
+            #         "--Mapper.init_min_triangle", str(4),
+            #     ]
+            #     subprocess.run(mapper_command, check=True)
 
-    # Undistort images (needed for Gaussian Splatting)
-    if args.colmap_undistort:
-        image_undistorter_command = [
-            "colmap", "image_undistorter",
-            "--image_path", args.rgba_folder,
-            "--input_path", args.sparse_folder + "/0",
-            "--output_path", args.undistorted_folder,
-            "--output_type", "COLMAP",
-            # "--max_image_size", str(1500),
-        ]
-        subprocess.run(image_undistorter_command)
+    if os.path.exists(args.sparse_folder):
+        if args.colmap_refine:
+            
+            # Bundle adjustment
+            # if args.colmap_refine:
+            bundel_adjuster_command = [
+                "colmap",
+                "bundle_adjuster",
+                "--input_path", args.sparse_folder + "/0",
+                "--output_path", args.sparse_folder + "/0",
+                "--BundleAdjustment.refine_principal_point", str(1)
+            ]
+            subprocess.run(bundel_adjuster_command)
 
-        files = os.listdir(args.undistorted_folder)
-        for file in files:
-            if file == '0':
-                continue
-            source_file = os.path.join(args.undistorted_folder, file)
-            destination_file = os.path.join(args.sparse_folder + "/0", file)
-            shutil.move(source_file, destination_file)
+        # Undistort images (needed for Gaussian Splatting)
+        if args.colmap_undistort:
+            image_undistorter_command = [
+                "colmap", "image_undistorter",
+                "--image_path", args.rgba_folder,
+                "--input_path", args.sparse_folder + "/0",
+                "--output_path", args.undistorted_folder,
+                "--output_type", "COLMAP",
+                # "--max_image_size", str(1500),
+            ]
+            subprocess.run(image_undistorter_command)
 
-        # Convert to txt
-        model_converter_command = [
-            "colmap", "model_converter",
-            "--input_path", args.sparse_folder + "/0",
-            "--output_path", args.sparse_folder + "/0",
-            "--output_type", "TXT"
-        ]
-        subprocess.run(model_converter_command)
+            files = os.listdir(args.undistorted_folder)
+            for file in files:
+                if file == '0':
+                    continue
+                source_file = os.path.join(args.undistorted_folder, file)
+                destination_file = os.path.join(args.sparse_folder + "/0", file)
+                shutil.move(source_file, destination_file)
 
-    # # if there are no images on sparse folder, copy rgba images
+            # Convert to txt
+            model_converter_command = [
+                "colmap", "model_converter",
+                "--input_path", args.sparse_folder + "/0",
+                "--output_path", args.sparse_folder + "/0",
+                "--output_type", "TXT"
+            ]
+            subprocess.run(model_converter_command)
+
+    # if there are no images on sparse folder, copy rgba images
     # if len(os.listdir(args.sparse_folder)) == 1:
     #     # copy rgba images to sparse folder
     #     for f in os.listdir(args.rgba_folder):
     #         shutil.copy(os.path.join(args.rgba_folder, f), os.path.join(args.sparse_folder, f))
 
 
-def convert_to_csv(args, outpath):
+def convert_to_csv(args):
     sparsedir = args.sparse_folder
     expected_N = len(os.listdir(args.rgba_folder))
 
@@ -177,7 +179,18 @@ def convert_to_csv(args, outpath):
 
     cam = cameras[camkey]
     params = cam.params
-    print(cam, params)
+
+    data["model"] = cam.model
+    width = params[0]
+    height = params[1]
+
+    if cam.model == "SIMPLE_PINHOLE":
+        data["focal_length"] = params[0]
+        data["principal_point"] = params[:2].tolist()
+    elif cam.model == "PINHOLE":
+        data["focal_length"] = params[0]
+        data["principal_point"] = params[:2].tolist()
+    data["field_of_view"] = 2 * np.arctan(0.5 * params[1] / data["focal_length"]) * 180 / np.pi
 
     # assert cam.model in ["RADIAL", "SIMPLE_RADIAL"]
     K = np.array([[params[0], 0.0, params[1]],
@@ -193,10 +206,11 @@ def convert_to_csv(args, outpath):
 
     lines = np.concatenate((params, Rs, ts), axis=1)
 
-    np.savetxt(outpath, lines, delimiter=",", newline="\n",
+    np.savetxt(args.output, lines, delimiter=",", newline="\n",
                header=(",".join(["f", "ox", "oy"]+
                                 [f"R[{i//3},{i%3}]" for i in range(9)]+
                                 [f"t[{i}]" for i in range(3)])))
+                                
 
 
 
@@ -211,7 +225,7 @@ if __name__ == '__main__':
     parser.add_argument('--colmap_matcher', default="sequential", choices=["exhaustive","sequential","spatial","transitive","vocab_tree"], help="Select which matcher colmap should use. Sequential for videos, exhaustive for ad-hoc images.")
     parser.add_argument('--colmap_refine','-r',  help="adjust bundle by refining cameras", action='store_true')
     parser.add_argument('--colmap_undistort','-u',  help="undistort images", action='store_true')
-    parser.add_argument('--subpath', help="Use subpath", action='store_true')
+    parser.add_argument('--subpath', '-d', default='sparse', help="Use subpath")
     args = parser.parse_args()
 
     # Try to load metadata
@@ -228,22 +242,19 @@ if __name__ == '__main__':
     input_folder = os.path.dirname(args.input)
     args.mask_folder = os.path.join(input_folder, 'mask')
     args.rgba_folder = os.path.join(input_folder, 'images')
+    args.sparse_folder = os.path.join(input_folder, args.subpath)
     args.undistorted_folder = os.path.join(input_folder, 'undistorted')
-    args.sparse_folder = os.path.join(input_folder, 'sparse')
     args.database_path = os.path.join(input_folder, args.colmap_db)
-    csv_path = os.path.join(input_folder, "camera_pose.csv")
-
-    check_overwrite(csv_path)
+    args.output = os.path.join(input_folder, BAND + ".csv")
     
     # Both mask and rgba should be there but if not create them
     if not os.path.exists(args.mask_folder) or not os.path.exists(args.rgba_folder):
         print("{} or {} not found. Please run process.py first to create both.".format(args.mask_folder, args.rgba_folder))
     
-    run_colmap(args)
+    process_video(args)
 
-    convert_to_csv(args, csv_path)
-
-
+    check_overwrite(args.output)
+    convert_to_csv(args)
 
     # save metadata
     write_metadata(args.input, data)
