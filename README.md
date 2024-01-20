@@ -11,7 +11,9 @@ It's a combination of different algorithms and open sourced pre-train models suc
 * segmentation (mmdet)
 * camera pose (colmap)
 
-The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs or Gaussian Splatting training.
+The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs (like [NVidia's Instant-ngp](https://github.com/NVlabs/instant-ngp)) or [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) training. 
+
+Infered depth is exported by default as a heatmap that can be decoded realtime using [LYGIA's heatmap GLSL/HLSL sampling](https://lygia.xyz/sample/heatmap). While the optical flow is encoded as HUE (angle) and saturation which also can be decoded realtime using [LYGIA opticalFlow GLSL/HLSL sampler](https://lygia.xyz/sample/opticalFlow).
 
 ## Install
 
