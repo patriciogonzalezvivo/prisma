@@ -208,6 +208,9 @@ In order to export the bands as a single image or video you can use the `concat.
 python concat.py -i data/gog -o test.png
 ```
 
+![test](https://github.com/patriciogonzalezvivo/prisma/assets/346914/763d3ada-736c-4676-ad4f-55eafe9dcf40)
+
+
 ## Roadmap
 
 [ ] Suport from Record3D RGB-D format
@@ -268,7 +271,7 @@ Citation for DPT-based model:
 **Use:**
 
 ```Shell
-depth_zoe.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+depth_zoedepth.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 Citation
@@ -296,7 +299,7 @@ Citation
 **Use:**
 
 ```Shell
-depth_fusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+depth_patchfusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 **Note:** [This pretrained model](https://huggingface.co/zhyever/PatchFusion/resolve/main/patchfusion_u4k.pt?download=true) needs to be downloaded and placed in the `models/` folder.
@@ -366,7 +369,6 @@ flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 **License:** [Apache](bands/mmdet/LICENSE)
 
 **Use:**
-
 
 ```Shell
 mask_mmdet.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
