@@ -2,7 +2,9 @@
 
 # PRISMA
 
-PRISMA it's a pipeline for performing multiple inferences or computations (refere as "bands") from any image or video. 
+PRISMA is a computational photography pipeline that performs multiple inferences (refere as "bands") from any image or video. Like light pasing through a prism that bends it into different wavelengths, this pipeline expands images into data that can be use for 3D reconstruction or realtime post-processing operations.
+
+![000-10745](https://github.com/patriciogonzalezvivo/prisma/assets/346914/be30f7bb-b515-4e8c-b420-8f2dff922c29)
 
 It's a combination of different algorithms and open sourced pre-train models such as:
 
