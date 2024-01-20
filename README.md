@@ -2,12 +2,17 @@
 
 # PRISMA
 
-Framework for performing multiple inferences ("bands") from images and videos. 
-It's a combination of open sourced models to infer:
+PRISMA it's a pipeline for performing multiple inferences or computations (refere as "bands") from any image or video. 
 
-    * depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
-    * optical flow (RAFT)
-    * segmentation (mmdet)
+It's a combination of different algorithms and open sourced pre-train models such as:
+
+* depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
+* optical flow (RAFT)
+* segmentation (mmdet)
+* camera pose (colmap)
+
+The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs or Gaussian Splatting training.
+
 
 ## Install
 
@@ -117,11 +122,6 @@ Which produce the folowing folder structure:
 ```
 rocky.mp4
 rocky/
-├── images/
-│   ├── 000000.png
-│   ├── 000001.png
-│   ├── ...
-│   └── 000110.png
 ├── depth_marigold/
 │   ├── 000000.png
 │   ├── 000001.png
@@ -160,12 +160,26 @@ rocky/
 │   ├── ...
 │   └── 000110.png
 ├── flow.csv
+├── flow.mp4
+├── images/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
 ├── mask/
 |   ├── 000000.png
 |   ├── 000001.png
 |   ├── ...
 |   └── 000110.png
 ├── mask.mp4
+|── sparse/
+|   └── 0/
+|       ├── cameras.bin
+|       ├── images.bin
+|       ├── points3D.bin
+|       └── points3D.txt
+|── camera_pose.csv
+|── colmap.db
 ├── metadata.json
 └── rgba.mp4
 ```
