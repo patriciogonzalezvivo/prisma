@@ -1,31 +1,8 @@
 # Copyright (c) 2024, Patricio Gonzalez Vivo
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-
-#     * Neither the name of Patricio Gonzalez Vivo nor the names of
-#       its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+#
+# Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License (the "License"). 
+# You may not use this file except in compliance with the License. You may obtain a copy of the License at https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode
+#
 
 import os
 import cv2
@@ -67,8 +44,6 @@ def scale_camera(camera: Camera, resize: tuple[int, int]) -> tuple[Camera, npt.N
         new_params = np.append(camera.params[:2] * scale_factor, camera.params[2:] * scale_factor)
     elif camera.model == "SIMPLE_PINHOLE":
         new_params = np.append(camera.params[:1] * scale_factor, camera.params[2:] * scale_factor)
-
-    print(camera.params, new_params)
 
     return (Camera(camera.id, camera.model, new_width, new_height, new_params), scale_factor)
 
@@ -167,8 +142,6 @@ def extract_values(data):
         for value in data["bands"][band]["values"]:
             address = band + "_" + value
 
-            print("Extracting value:", address)
-
             # load values from file (video)
             if "url" in data["bands"][band]["values"][value]:
                 cvs_path = os.path.join(args.input, data["bands"][band]["values"][value]["url"])
@@ -241,11 +214,11 @@ def add_band_image(data, band, img, resize=None, index=None):
 
 
 def add_band(data, band, resize):
-
     if "url" in data["bands"][band]:
 
         # If it's a video
         if data["bands"][band]["url"].endswith(".mp4"):
+            print("About to load band video", band, "at", data["bands"][band]["url"])
             frames = int(data["frames"])
 
             band_path = os.path.join(args.input, data["bands"][band]["url"])
@@ -260,9 +233,9 @@ def add_band(data, band, resize):
                 frame_idx += 1
 
         # If it's an image
-        else:
+        elif data["bands"][band]["url"].endswith(".png") or data["bands"][band]["url"].endswith(".jpg"):
+            print("About to load band image", band, "at", data["bands"][band]["url"])
             rr.set_time_sequence("frame", 0)
-
             band_path = os.path.join(args.input, data["bands"][band]["url"])
             band_img = cv2.cvtColor(cv2.imread(band_path), cv2.COLOR_BGR2RGB)
             add_band_image(data, band, band_img, resize=resize)

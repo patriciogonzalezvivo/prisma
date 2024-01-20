@@ -191,9 +191,10 @@ python concat.py -i data/gog -o test.png
 
 ## Roadmap
 
-[ ] Derive Field of View from: EXIF or COLMAP
+[ ] Extract Field of View from EXIF in images 
+
 [ ] Suport from Polycam RGB-D
-[ ] COLMAP camera paths
+
 
 ## Aknowledgements
 
