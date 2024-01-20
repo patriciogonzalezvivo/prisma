@@ -13,8 +13,12 @@ It's a combination of different algorithms and open sourced pre-train models suc
 
 The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs or Gaussian Splatting training.
 
-
 ## Install
+
+Main dependencies:
+
+* [Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
+* [COLMAP](https://colmap.github.io/install.html)
 
 ```Shell
 git clone git@github.com:patriciogonzalezvivo/prisma.git
@@ -194,6 +198,8 @@ View the resulting bands from the processed image/video using [ReRun](https://ww
 python view.py -i data/rocky
 ```
 
+![2024-01-20 06-35-33](https://github.com/patriciogonzalezvivo/prisma/assets/346914/7abff827-631a-45cd-8aba-819172f59877)
+
 ### c. Concatenate bands
 
 In order to export the bands as a single image or video you can use the `concat.py` script:
@@ -202,15 +208,17 @@ In order to export the bands as a single image or video you can use the `concat.
 python concat.py -i data/gog -o test.png
 ```
 
-
 ## Roadmap
 
-[ ] Extract Field of View from EXIF in images 
+[ ] Suport from Record3D RGB-D format
 
-[ ] Suport from Polycam RGB-D
+[ ] Find a proper way to extract Field of View, and centers from single images. Like EXIF in images or through a model.
 
+## Licenses and Credits
 
-## Aknowledgements
+This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out if you want to use it commercially.
+
+All the models and software used by it are commercial ready licenses like MIT, Apache and BSD.
 
 ### Depth estimation (MiDAS 3.1)
 
