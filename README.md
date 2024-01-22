@@ -223,7 +223,7 @@ python concat.py -i data/gog -o test.png
 
 ## Licenses and Credits
 
-This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out if you want to use it commercially.
+This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out to patriciogonzalezvivo at gmail dot com, for getting a comercial license.
 
 All the models and software used by it are commercial ready licenses like MIT, Apache and BSD.
 
