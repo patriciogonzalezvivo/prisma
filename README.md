@@ -6,7 +6,7 @@ PRISMA is a computational photography pipeline that performs multiple inferences
 
 It's a combination of different algorithms and open sourced pre-train models such as:
 
-* Monocular `depth` ([MiDAS v3.1, ZoeDepth, Marigold, PatchFusion](https://medium.com/@patriciogv/the-state-of-the-art-of-depth-estimation-from-single-images-9e245d51a315))
+* Monocular `depth` ([MiDAS v3.1, ZoeDepth, Marigold, PatchFusion, Depth_Anything](https://medium.com/@patriciogv/the-state-of-the-art-of-depth-estimation-from-single-images-9e245d51a315))
 * Optical `flow` (RAFT)
 * Segmentation `mask` (mmdet)
 * `camera pose` (colmap)
@@ -108,7 +108,7 @@ In the forlder you will find a `metadata.json` file that contains all the metada
 }
 ```
 
-Currently PRISMA supports multiple depth estimation algorithms. You can select which one to use by providing the `--depth`|`-d` argument: `depth_midas`, `depth_zoedepth`, `depth_patchfusion`, `depth_marigold` or `all`. By defualt images will be processed using `depth_patchfusion`, while videos will use `depth_zoedepth`.
+Currently PRISMA supports multiple depth estimation algorithms. You can select which one to use by providing the `--depth`|`-d` argument: `depth_midas`, `depth_zoedepth`, `depth_patchfusion`, `depth_marigold` or `all`. By defualt images will be processed using `depth_patchfusion`, while videos will use `depth_anything`.
 
 When processing videos, by default PRISMA creates the least ammount of data by creating a single `.png` or `.mp4` for each band. In the case of videos data like min/max values will be stored on `.cvs`.
 
@@ -130,6 +130,14 @@ Which produce the folowing folder structure:
 ```
 rocky.mp4
 rocky/
+├── depth_anything/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── depth_anything_max.csv
+├── depth_anything_min.csv
+├── depth_anything.mp4
 ├── depth_marigold/
 │   ├── 000000.png
 │   ├── 000001.png
@@ -345,6 +353,31 @@ Citation
       eprint={2312.02145},
       archivePrefix={arXiv},
       primaryClass={cs.CV}
+}
+```
+
+### Depth Estimation (Depth Anything)
+
+**Paper:** [Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data](https://github.com/LiheYoung/Depth-Anything/blob/main/assets/paper.pdf)
+
+**License:** [Apache](bands/d_anything/LICENSE)
+
+**Code Repo:** [LiheYoung/Depth-Anything](https://github.com/LiheYoung/Depth-Anything)
+
+**Use:**
+
+```Shell
+depth_anything.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+```
+
+Citation
+
+```bibtex
+@article{depthanything,
+      title={Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data}, 
+      author={Yang, Lihe and Kang, Bingyi and Huang, Zilong and Xu, Xiaogang and Feng, Jiashi and Zhao, Hengshuang},
+      journal={arXiv:2401.10891},
+      year={2024}
 }
 ```
 
