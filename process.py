@@ -15,9 +15,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Default values
-DEPTH_VIDEO_DEFAULT = "depth_zoedepth"
+DEPTH_VIDEO_DEFAULT = "depth_anything"
 DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
-DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion"]
+DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion", "depth_anything"]
 DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
 
 # Subfolders
@@ -29,6 +29,7 @@ SUBFOLDERS = {
     "depth_midas": "depth_midas",
     "depth_marigold": "depth_marigold",
     "depth_patchfusion": "depth_patchfusion",
+    "depth_anything": "depth_anything",
     "camera_colmap": "sparse"
 }
 
