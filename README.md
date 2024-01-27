@@ -2,16 +2,20 @@
 
 # PRISMA
 
-PRISMA it's a pipeline for performing multiple inferences or computations (refere as "bands") from any image or video. 
+PRISMA is a computational photography pipeline that performs multiple inferences (refere as "bands") from any image or video. Like light pasing through a prism that bends it into different wavelengths, this pipeline expands images into data that can be use for 3D reconstruction or realtime post-processing operations.
 
 It's a combination of different algorithms and open sourced pre-train models such as:
 
-* depth (MiDAS v3.1, ZoeDepth, Marigold, PatchFusion)
-* optical flow (RAFT)
-* segmentation (mmdet)
-* camera pose (colmap)
+* Monocular `depth` ([MiDAS v3.1, ZoeDepth, Marigold, PatchFusion](https://medium.com/@patriciogv/the-state-of-the-art-of-depth-estimation-from-single-images-9e245d51a315))
+* Optical `flow` (RAFT)
+* Segmentation `mask` (mmdet)
+* `camera pose` (colmap)
 
-The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs or Gaussian Splatting training.
+![2024-01-20 09-31-13](https://github.com/patriciogonzalezvivo/prisma/assets/346914/9f8960e5-bf52-479f-bbc3-d816ab9644ea)
+
+The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs (like [NVidia's Instant-ngp](https://github.com/NVlabs/instant-ngp)) or [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) training. 
+
+Infered depth is exported by default as a heatmap that can be decoded realtime using [LYGIA's heatmap GLSL/HLSL sampling](https://lygia.xyz/sample/heatmap). While the optical flow is encoded as HUE (angle) and saturation which also can be decoded realtime using [LYGIA opticalFlow GLSL/HLSL sampler](https://lygia.xyz/sample/opticalFlow).
 
 ## Install
 
@@ -208,6 +212,9 @@ In order to export the bands as a single image or video you can use the `concat.
 python concat.py -i data/gog -o test.png
 ```
 
+![test](https://github.com/patriciogonzalezvivo/prisma/assets/346914/763d3ada-736c-4676-ad4f-55eafe9dcf40)
+
+
 ## Roadmap
 
 [ ] Suport from Record3D RGB-D format
@@ -216,7 +223,7 @@ python concat.py -i data/gog -o test.png
 
 ## Licenses and Credits
 
-This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out if you want to use it commercially.
+This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out to patriciogonzalezvivo at gmail dot com, for getting a comercial license.
 
 All the models and software used by it are commercial ready licenses like MIT, Apache and BSD.
 
@@ -268,7 +275,7 @@ Citation for DPT-based model:
 **Use:**
 
 ```Shell
-depth_zoe.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+depth_zoedepth.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 Citation
@@ -296,7 +303,7 @@ Citation
 **Use:**
 
 ```Shell
-depth_fusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+depth_patchfusion.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
 
 **Note:** [This pretrained model](https://huggingface.co/zhyever/PatchFusion/resolve/main/patchfusion_u4k.pt?download=true) needs to be downloaded and placed in the `models/` folder.
@@ -366,7 +373,6 @@ flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 **License:** [Apache](bands/mmdet/LICENSE)
 
 **Use:**
-
 
 ```Shell
 mask_mmdet.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
