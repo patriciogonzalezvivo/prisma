@@ -15,7 +15,7 @@ It's a combination of different algorithms and open sourced pre-train models suc
 
 The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. And can be imported on:
 
-* [Blender projects](https://github.com/patriciogonzalezvivo/prisma_blender)
+* [Estimated depth can be importer to Blender projects using this blender project](https://github.com/patriciogonzalezvivo/prisma_blender), also [COLMAP scenes can be imported using this addon](https://github.com/SBCV/Blender-Addon-Photogrammetry-Importer)
 * [GlslViewer for applying real-time shaders](https://github.com/patriciogonzalezvivo/prisma_glslViewer)
 * Videos can be use for both NeRFs (like [NVidia's Instant-ngp](https://github.com/NVlabs/instant-ngp)) or [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) training. 
 
