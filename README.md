@@ -9,13 +9,19 @@ It's a combination of different algorithms and open sourced pre-train models suc
 * Monocular `depth` ([MiDAS v3.1, ZoeDepth, Marigold, PatchFusion, Depth_Anything](https://medium.com/@patriciogv/the-state-of-the-art-of-depth-estimation-from-single-images-9e245d51a315))
 * Optical `flow` (RAFT)
 * Segmentation `mask` (mmdet)
-* `camera pose` (colmap)
+* `camera pose` (COLMAP)
 
 ![2024-01-20 09-31-13](https://github.com/patriciogonzalezvivo/prisma/assets/346914/9f8960e5-bf52-479f-bbc3-d816ab9644ea)
 
-The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. In the case of videos, at the last step will attempt to perform a sparse reconstruction which will can be use for both NeRFs (like [NVidia's Instant-ngp](https://github.com/NVlabs/instant-ngp)) or [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) training. 
+The resulting bands are stored in a folder with the same name as the input file. Each band is stored as a single `.png` or `.mp4` file. And can be imported on:
 
-Infered depth is exported by default as a heatmap that can be decoded realtime using [LYGIA's heatmap GLSL/HLSL sampling](https://lygia.xyz/sample/heatmap). While the optical flow is encoded as HUE (angle) and saturation which also can be decoded realtime using [LYGIA opticalFlow GLSL/HLSL sampler](https://lygia.xyz/sample/opticalFlow).
+* [Blender projects](https://github.com/patriciogonzalezvivo/prisma_blender)
+* [GlslViewer for applying real-time shaders](https://github.com/patriciogonzalezvivo/prisma_glslViewer)
+* Videos can be use for both NeRFs (like [NVidia's Instant-ngp](https://github.com/NVlabs/instant-ngp)) or [Gaussian Splatting](https://github.com/graphdeco-inria/gaussian-splatting) training. 
+
+**Notes**:
+* Infered depth is exported by default as a heatmap that can be decoded realtime using [LYGIA's heatmap GLSL/HLSL sampling](https://lygia.xyz/sample/heatmap). 
+* optical flow is encoded as HUE (angle) and saturation which also can be decoded realtime using [LYGIA opticalFlow GLSL/HLSL sampler](https://lygia.xyz/sample/opticalFlow).
 
 ## Install
 
