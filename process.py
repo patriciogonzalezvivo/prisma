@@ -9,12 +9,12 @@ import numpy as np
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
-from bands.common.meta import create_metadata, is_video, add_band, write_metadata, load_metadata
+from bands.common.meta import create_metadata, is_video, add_band, write_metadata, set_default_band
 
 import warnings
 warnings.filterwarnings("ignore")
 
-# Default values
+# Default BANDS & MODELS
 DEPTH_VIDEO_DEFAULT = "depth_zoedepth"
 DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
 DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion", "depth_anything"]
@@ -23,6 +23,10 @@ DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
 FLOW_DEFAULT = "flow_gmflow"
 FLOW_BANDS = ["flow_gmflow", "flow_raft"]
 FLOW_OPTIONS = FLOW_BANDS + ["all"]
+
+MASK_DEFAULT = "mask_mmdet"
+MASK_BANDS = ["mask_mmdet"]
+MASK_OPTIONS = MASK_BANDS + ["all"]
 
 # Subfolders
 SUBFOLDERS = {
@@ -177,6 +181,11 @@ if __name__ == '__main__':
 
         run(args.depth, folder_name, subpath=args.extra, extra_args=extra_args)
 
+    if is_video(input_path):
+        set_default_band(folder_name, "depth", DEPTH_VIDEO_DEFAULT)
+    else:
+        set_default_band(folder_name, "depth", DEPTH_IMAGE_DEFAULT)
+
     # # Add a default depth band
     # data = load_metadata(folder_name)
     # if args.depth == "all":
@@ -206,6 +215,9 @@ if __name__ == '__main__':
                 run(band, folder_name, subpath=args.flo, extra_args=flow_args)
         else:
             run(args.flow, folder_name, subpath=args.flo, extra_args=flow_args)
+
+        # Add a default flow band
+        set_default_band(folder_name, "flow", FLOW_DEFAULT)
 
         # 5.d EXTRACT camera
         run("camera_colmap", folder_name, subpath=True)

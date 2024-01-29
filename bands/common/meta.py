@@ -132,3 +132,13 @@ def write_metadata(path, metadata):
     if os.path.exists(metadata_path):
         with open( metadata_path, 'w') as metadata_file:
             metadata_file.write( json.dumps(metadata, indent=4) )
+
+def set_default_band(path, band, band_default):
+    """Set the default band for a given path and band."""
+    data = load_metadata(path)
+
+    if data:
+        if "bands" in data:
+            if band_default in data["bands"]:
+                data["bands"][band] = data["bands"][band_default]
+                write_metadata(path, data)
