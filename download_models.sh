@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # RAFTs
-wget https://www.dropbox.com/s/4j4z58wuv8o0mfz/models.zip
+# wget https://www.dropbox.com/s/4j4z58wuv8o0mfz/models.zip
+wget https://www.dropbox.com/scl/fi/zh3220fwav2l8i2zbvreo/models.zip?rlkey=dg8bynghzm1xaeqkmnvlv1q3n&dl=0 -O models.zip
 unzip models.zip
 rm models.zip
 

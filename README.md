@@ -7,7 +7,7 @@ PRISMA is a computational photography pipeline that performs multiple inferences
 It's a combination of different algorithms and open sourced pre-train models such as:
 
 * Monocular `depth` ([MiDAS v3.1, ZoeDepth, Marigold, PatchFusion, Depth_Anything](https://medium.com/@patriciogv/the-state-of-the-art-of-depth-estimation-from-single-images-9e245d51a315))
-* Optical `flow` (RAFT)
+* Optical `flow` (RAFT, GMFlow)
 * Segmentation `mask` (mmdet)
 * `camera pose` (COLMAP)
 
@@ -176,13 +176,20 @@ rocky/
 ├── depth_zoedepth_max.csv
 ├── depth_zoedepth_min.csv
 ├── depth_zoedepth.mp4
-├── flow/
+├── flow_raft/
 │   ├── 000000.png
 │   ├── 000001.png
 │   ├── ...
 │   └── 000110.png
-├── flow.csv
-├── flow.mp4
+├── flow_raft.csv
+├── flow_raft.mp4
+├── flow_gmflow/
+│   ├── 000000.png
+│   ├── 000001.png
+│   ├── ...
+│   └── 000110.png
+├── flow_gmflow.csv
+├── flow_gmflow.mp4
 ├── images/
 │   ├── 000000.png
 │   ├── 000001.png
@@ -306,6 +313,7 @@ Citation
 }
 ```
 
+
 ### Depth Estimation (PatchFusion)
 
 **Paper:** [PatchFusion: An End-to-End Tile-Based Framework for High-Resolution Monocular Metric Depth Estimation](https://zhyever.github.io/patchfusion/images/paper.pdf)
@@ -335,6 +343,7 @@ Citation
     primaryClass={cs.CV}}
 ```
 
+
 ### Depth Estimation (Marigold)
 
 **Paper:** [Marigold: Repurposing Diffusion-Based Image Generators for Monocular Depth Estimation](https://arxiv.org/abs/2312.02145)
@@ -362,6 +371,7 @@ Citation
 }
 ```
 
+
 ### Depth Estimation (Depth Anything)
 
 **Paper:** [Depth Anything: Unleashing the Power of Large-Scale Unlabeled Data](https://github.com/LiheYoung/Depth-Anything/blob/main/assets/paper.pdf)
@@ -387,6 +397,7 @@ Citation
 }
 ```
 
+
 ### Optical Flow (RAFT)
 
 Based on https://github.com/SharifElfouly/opical-flow-estimation-with-RAFT
@@ -402,8 +413,24 @@ Seems to be very good: [Optical Flow Estimation Benchmark](https://paperswithcod
 **Use:**
 
 ```Shell
-flow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+flow_raft.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
 ```
+
+
+### Optical Flow (GMFlow)
+
+**Paper:** [GMFlow: Learning Optical Flow via Global Matching](https://arxiv.org/abs/2111.13680)
+
+**License:** [Apache](bands/gmflow/LICENSE)
+
+**Code Repo:** [haofeixu/gmflow](https://github.com/haofeixu/gmflow)
+
+**Use:**
+
+```Shell
+flow_gmflow.py --input <IMAGE/VIDEO> --output <IMAGE/VIDEO>
+```
+
 
 ### Segmentation (MMDetection)
 

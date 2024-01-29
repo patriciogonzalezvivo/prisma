@@ -23,6 +23,7 @@ class InputPadder:
         c = [self._pad[2], ht-self._pad[3], self._pad[0], wd-self._pad[1]]
         return x[..., c[0]:c[1], c[2]:c[3]]
 
+
 def forward_interpolate(flow):
     flow = flow.detach().cpu().numpy()
     dx, dy = flow[0], flow[1]

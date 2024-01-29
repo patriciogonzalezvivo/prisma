@@ -11,9 +11,9 @@ sys.path.append('raft')
 import argparse
 
 import numpy as np
-import torch
-
 import cv2
+
+import torch
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -21,32 +21,47 @@ warnings.filterwarnings("ignore")
 import decord
 from tqdm import tqdm
 
-from raft.raft import RAFT
-from raft.utils.utils import InputPadder
-from raft.utils.frame_utils import write_flow
+from gmflow.gmflow import GMFlow
+import torch.nn.functional as F
 
 from common.io import VideoWriter, check_overwrite
 from common.meta import load_metadata, get_target, write_metadata, get_url
-from common.flow import load_image, compute_fwdbwd_mask, write_flow
+from common.flow import load_image, InputPadder, compute_fwdbwd_mask, write_flow
 
-BAND = "flow_raft"
+
+BAND = "flow_gmflow"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
 ITERATIONS = 20
-MODEL = 'models/raft-sintel.pth'
+MODEL = 'models/gmflow_sintel-0c07dcb3.pth'
 
 data = None
+device = None
 model = None
+optimizer = None
 
 def init_model(args):
-    global model, device
+    global device, model, optimizer 
     
-    # load model
-    model = torch.nn.DataParallel(RAFT(args))
-    model.load_state_dict( torch.load( args.model ) )
-    model = model.module
-    model.to(DEVICE)
-    model.eval()
+    device = torch.device(DEVICE)
+    model = GMFlow(feature_channels=args.feature_channels,
+                   num_scales=args.num_scales,
+                   upsample_factor=args.upsample_factor,
+                   num_head=args.num_head,
+                   attention_type=args.attention_type,
+                   ffn_dim_expansion=args.ffn_dim_expansion,
+                   num_transformer_layers=args.num_transformer_layers,
+                   ).to(device)
     
+    num_params = sum(p.numel() for p in model.parameters())
+    print('Number of params:', num_params)
+
+    print('Load checkpoint: %s' % args.model)
+    loc = 'cuda:{}'.format(args.local_rank)
+    checkpoint = torch.load(args.model, map_location=loc)
+    
+    weights = checkpoint['model'] if 'model' in checkpoint else checkpoint
+    model.load_state_dict(weights, strict=args.strict_resume)
+
     return model
 
 
@@ -54,13 +69,47 @@ def infer(args, image1, image2):
     fwd_flow, bwd_flow = None, None
     fwd_mask, bwd_mask = None, None
 
-    padder = InputPadder(image1.shape)
-    image1, image2 = padder.pad(image1, image2)
-    _, flow_up = model(image1, image2, iters=args.iterations, test_mode=True)
-    fwd_flow = padder.unpad(flow_up[0]).permute(1,2,0).cpu().numpy()
+    if args.inference_size is None:
+        padder = InputPadder(image1.shape, padding_factor=args.padding_factor)
+        image1, image2 = padder.pad(image1[None].cuda(), image2[None].cuda())
+    else:
+        image1, image2 = image1[None].cuda(), image2[None].cuda()
 
-    if args.ds_subpath != '' or args.vis_subpath  != '' or args.subpath != '' or args.backwards:
-        bwd_flow = padder.unpad(flow_up[1]).permute(1,2,0).cpu().numpy()
+    if args.inference_size is not None:
+        assert isinstance(args.inference_size, list) or isinstance(args.inference_size, tuple)
+        ori_size = image1.shape[-2:]
+        image1 = F.interpolate(image1, size=args.inference_size, mode='bilinear', align_corners=True)
+        image2 = F.interpolate(image2, size=args.inference_size, mode='bilinear', align_corners=True)
+
+    results_dict = model(image1, image2,
+                            attn_splits_list=args.attn_splits_list,
+                            corr_radius_list=args.corr_radius_list,
+                            prop_radius_list=args.prop_radius_list,
+                            pred_bidir_flow=args.backwards,
+                        )
+    
+    flow_pr = results_dict['flow_preds'][-1]  # [B, 2, H, W]
+
+    # resize back
+    if args.inference_size is not None:
+        flow_pr = F.interpolate(flow_pr, size=ori_size, mode='bilinear',
+                                align_corners=True)
+        flow_pr[:, 0] = flow_pr[:, 0] * ori_size[-1] / args.inference_size[-1]
+        flow_pr[:, 1] = flow_pr[:, 1] * ori_size[-2] / args.inference_size[-2]
+
+    if args.inference_size is None:
+        fwd_flow = padder.unpad(flow_pr[0]).permute(1, 2, 0).cpu().numpy()  # [H, W, 2]
+    else:
+        fwd_flow = flow_pr[0].permute(1, 2, 0).cpu().numpy()  # [H, W, 2]
+
+    # also predict backward flow
+    if args.backwards:
+        assert flow_pr.size(0) == 2  # [2, H, W, 2]
+
+        if args.inference_size is None:
+            bwd_flow = padder.unpad(flow_pr[1]).permute(1, 2, 0).cpu().numpy()  # [H, W, 2]
+        else:
+            bwd_flow = flow_pr[1].permute(1, 2, 0).cpu().numpy()  # [H, W, 2]
 
     if args.ds_subpath != '':
         fwd_mask, bwd_mask = compute_fwdbwd_mask(fwd_flow, bwd_flow)
@@ -93,19 +142,20 @@ def process_video(args):
     bwd_mask = None
     for i in tqdm( range(total_frames) ):
         frame = in_video[i].asnumpy()
-        ds_frame = cv2.resize(frame, None, fx=args.scale, fy=args.scale, interpolation=cv2.INTER_CUBIC)
-        curr_frame = load_image( ds_frame )[None].to(DEVICE)
+
+        if args.scale != 1.0:
+            frame = cv2.resize(frame, None, fx=args.scale, fy=args.scale, interpolation=cv2.INTER_CUBIC)
+
+        curr_frame = load_image( frame )
 
         if prev_frame is not None:
             with torch.no_grad():
-                image1 = torch.cat([prev_frame, curr_frame], dim=0)
-                image2 = torch.cat([curr_frame, prev_frame], dim=0)
-                fwd_flow, bwd_flow, fwd_mask, bwd_mask = infer(args, image1, image2)
+                fwd_flow, bwd_flow, fwd_mask, bwd_mask = infer(args, prev_frame, curr_frame)
                 write_flow(args, fwd_flow, fwd_flow_video, max_disps, i-1, bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, fwd_mask=fwd_mask, bwd_mask=bwd_mask)
-
+                
         prev_frame = curr_frame.clone()
 
-    # Last frame
+    # Save last frame
     fwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
     bwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
 
@@ -148,17 +198,34 @@ if __name__ == '__main__':
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
     parser.add_argument('--output', '-o', help="output", type=str, default="")
     parser.add_argument('--model', '-m', help="model path", type=str, default=MODEL)
-    parser.add_argument('--iterations', help="number of iterations", type=int, default=ITERATIONS)
     parser.add_argument('--subpath', '-f', help="path to flo files", type=str, default='')
     parser.add_argument('--ds_subpath', '-d', help="path to flo files", type=str, default='')
     parser.add_argument('--vis_subpath', '-v', help="path to flo files", type=str, default='')
     parser.add_argument('--backwards','-b',  help="Backward video", action='store_true')
 
     parser.add_argument('--scale', type=float, default=0.75)
-    parser.add_argument('--raft_model', default='models/raft-things.pth', help="[RAFT] restore checkpoint")
-    parser.add_argument('--small', action='store_true', help='[RAFT] use small model')
-    parser.add_argument('--mixed_precision', action='store_true', help='[RAFT] use mixed precision')
-    parser.add_argument('--alternate_corr', action='store_true', help='[RAFT] use efficent correlation implementation')
+
+    # GMFlow model
+    parser.add_argument('--feature_channels', default=128, type=int)
+    parser.add_argument('--num_scales', default=1, type=int, help='basic gmflow model uses a single 1/8 feature, the refinement uses 1/4 feature')
+    parser.add_argument('--upsample_factor', default=8, type=int)
+    parser.add_argument('--num_head', default=1, type=int)
+    parser.add_argument('--attention_type', default='swin', type=str)
+    parser.add_argument('--ffn_dim_expansion', default=4, type=int)
+    parser.add_argument('--num_transformer_layers', default=6, type=int)
+    parser.add_argument('--attn_splits_list', default=[2], type=int, nargs='+', help='number of splits in attention')
+    parser.add_argument('--corr_radius_list', default=[-1], type=int, nargs='+', help='correlation radius for matching, -1 indicates global matching')
+    parser.add_argument('--prop_radius_list', default=[-1], type=int, nargs='+', help='self-attention radius for flow propagation, -1 indicates global attention')
+
+    # resume pretrained model or resume training
+    parser.add_argument('--strict_resume', action='store_true')
+
+    # inference on a directory
+    parser.add_argument('--inference_size', default=None, type=int, nargs='+', help='can specify the inference size')
+    parser.add_argument('--padding_factor', default=16, type=int, help='the input should be divisible by padding_factor, otherwise do padding')
+    
+    # distributed training
+    parser.add_argument('--local_rank', default=0, type=int)
 
     args = parser.parse_args()
 

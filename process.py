@@ -20,11 +20,16 @@ DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
 DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion", "depth_anything"]
 DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
 
+FLOW_DEFAULT = "flow_gmflow"
+FLOW_BANDS = ["flow_gmflow", "flow_raft"]
+FLOW_OPTIONS = FLOW_BANDS + ["all"]
+
 # Subfolders
 SUBFOLDERS = {
     "rgba": "images",
     "mask_mmdet": "mask",
-    "flow_raft": "flow",
+    "flow_raft": "flow_raft",
+    "flow_gmflow": "flow_gmflow",
     "depth_zoedepth": "depth_zoedepth",
     "depth_midas": "depth_midas",
     "depth_marigold": "depth_marigold",
@@ -67,6 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--npy', '-n', help='Save npy version of files', action='store_true')
 
     # Flow
+    parser.add_argument('--flow', '-f', help='Flow bands', type=str, default=None, choices=FLOW_OPTIONS)
     parser.add_argument('--flo', help='Save flo files for raft', action='store_true')
     parser.add_argument('--flow_backwards', '-b',  help="Save backwards video", action='store_true')
 
@@ -185,14 +191,23 @@ if __name__ == '__main__':
     # 5.b EXTRACT MASK (mmdet)
     run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
 
-    # 5.c EXTRACT optical FLOW
     if is_video(input_path):
-        # Flow (RAFT)
+
+        # 5.c EXTRACT optical FLOW
+        if args.flow == None:
+            args.flow = FLOW_DEFAULT
+
         flow_args = ""
         if args.flow_backwards:
             flow_args += "--backwards "
-        run("flow_raft", folder_name, subpath=args.flo, extra_args=flow_args)
 
+        if args.flow == "all":
+            for band in FLOW_BANDS:
+                run(band, folder_name, subpath=args.flo, extra_args=flow_args)
+        else:
+            run(args.flow, folder_name, subpath=args.flo, extra_args=flow_args)
+
+        # 5.d EXTRACT camera
         run("camera_colmap", folder_name, subpath=True)
 
 
