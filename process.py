@@ -151,7 +151,10 @@ if __name__ == '__main__':
     if args.extra > 2:
         args.npy = True
 
-    # 5.a EXTRACT DEPTH
+    # 5.a EXTRACT MASK (mmdet)
+    run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
+
+    # 5.b EXTRACT DEPTH
     depth_args = ""
     if args.ply:
         depth_args = "--ply "
@@ -181,25 +184,14 @@ if __name__ == '__main__':
 
         run(args.depth, folder_name, subpath=args.extra, extra_args=extra_args)
 
-    if is_video(input_path):
-        set_default_band(folder_name, "depth", DEPTH_VIDEO_DEFAULT)
+    if args.depth == "all":
+        if is_video(input_path):
+            set_default_band(folder_name, "depth", DEPTH_VIDEO_DEFAULT)
+        else:
+            set_default_band(folder_name, "depth", DEPTH_IMAGE_DEFAULT)
     else:
-        set_default_band(folder_name, "depth", DEPTH_IMAGE_DEFAULT)
-
-    # # Add a default depth band
-    # data = load_metadata(folder_name)
-    # if args.depth == "all":
-    #     if is_video(input_path):
-    #         data["bands"]["depth"] = data["bands"][DEPTH_VIDEO_DEFAULT]
-    #     else:
-    #         data["bands"]["depth"] = data["bands"][DEPTH_IMAGE_DEFAULT]
-    # else:
-    #     data["bands"]["depth"] = data["bands"][args.depth]
-    # write_metadata(folder_name, data)
+        set_default_band(folder_name, "depth", args.depth)
     
-    # 5.b EXTRACT MASK (mmdet)
-    run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
-
     if is_video(input_path):
 
         # 5.c EXTRACT optical FLOW
@@ -217,7 +209,10 @@ if __name__ == '__main__':
             run(args.flow, folder_name, subpath=args.flo, extra_args=flow_args)
 
         # Add a default flow band
-        set_default_band(folder_name, "flow", FLOW_DEFAULT)
+        if args.flow == "all":
+            set_default_band(folder_name, "flow", FLOW_DEFAULT)
+        else:
+            set_default_band(folder_name, "flow", args.flow)
 
         # 5.d EXTRACT camera
         run("camera_colmap", folder_name, subpath=True)
