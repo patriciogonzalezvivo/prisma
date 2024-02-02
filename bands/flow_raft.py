@@ -22,12 +22,10 @@ import decord
 from tqdm import tqdm
 
 from raft.raft import RAFT
-from raft.utils.utils import InputPadder
-from raft.utils.frame_utils import write_flow
 
 from common.io import VideoWriter, check_overwrite
 from common.meta import load_metadata, get_target, write_metadata, get_url
-from common.flow import load_image, compute_fwdbwd_mask, write_flow
+from common.flow import load_image, compute_fwdbwd_mask, InputPadder, write_flow
 
 BAND = "flow_raft"
 DEVICE = 'cuda' if torch.cuda.is_available else 'cpu'
@@ -59,10 +57,10 @@ def infer(args, image1, image2):
     _, flow_up = model(image1, image2, iters=args.iterations, test_mode=True)
     fwd_flow = padder.unpad(flow_up[0]).permute(1,2,0).cpu().numpy()
 
-    if args.ds_subpath != '' or args.vis_subpath  != '' or args.subpath != '' or args.backwards:
+    if args.output_mask != '' or args.subpath_mask != '' or args.subpath != '' or args.backwards:
         bwd_flow = padder.unpad(flow_up[1]).permute(1,2,0).cpu().numpy()
 
-    if args.ds_subpath != '':
+    if args.output_mask != '' or args.subpath_mask != '':
         fwd_mask, bwd_mask = compute_fwdbwd_mask(fwd_flow, bwd_flow)
 
     return fwd_flow, bwd_flow, fwd_mask, bwd_mask
@@ -79,11 +77,17 @@ def process_video(args):
     total_frames = len(in_video)
     fps = in_video.get_avg_fps()
     
-    fwd_flow_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output )
+    fwd_flow_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output)
+    fwd_mask_video = None
+    if args.output_mask != '':
+        fwd_mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output_mask)
 
     bwd_flow_video = None
+    bwd_mask_video = None
     if args.backwards:
         bwd_flow_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=output_basename +'_bwd.mp4' )
+        if args.output_mask != '':
+            bwd_mask_video = VideoWriter(width=width, height=height, frame_rate=fps, filename=args.output_mask.rsplit( ".", 1 )[ 0 ] +'_bwd.mp4')
 
     max_disps = []
 
@@ -101,7 +105,10 @@ def process_video(args):
                 image1 = torch.cat([prev_frame, curr_frame], dim=0)
                 image2 = torch.cat([curr_frame, prev_frame], dim=0)
                 fwd_flow, bwd_flow, fwd_mask, bwd_mask = infer(args, image1, image2)
-                write_flow(args, fwd_flow, fwd_flow_video, max_disps, i-1, bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, fwd_mask=fwd_mask, bwd_mask=bwd_mask)
+                write_flow(args, fwd_flow, fwd_flow_video, max_disps, i-1, 
+                            fwd_mask=fwd_mask, fwd_mask_video=fwd_mask_video,
+                            bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, 
+                            bwd_mask=bwd_mask, bwd_mask_video=bwd_mask_video)
 
         prev_frame = curr_frame.clone()
 
@@ -109,16 +116,23 @@ def process_video(args):
     fwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
     bwd_flow = np.zeros(frame[..., :2].shape, dtype=np.float32)
 
-    if args.ds_subpath != '':
+    if args.output_mask != '' or args.subpath_mask != '':
         fwd_mask = np.zeros(frame[..., 0].shape, dtype=bool)
         bwd_mask = np.zeros(frame[..., 0].shape, dtype=bool)
     
-    write_flow(args, fwd_flow, fwd_flow_video, max_disps, i, bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, fwd_mask=fwd_mask, bwd_mask=bwd_mask)
+    write_flow(args, fwd_flow, fwd_flow_video, max_disps, i, 
+                fwd_mask=fwd_mask, fwd_mask_video=fwd_mask_video,
+                bwd_flow=bwd_flow, bwd_flow_video=bwd_flow_video, 
+                bwd_mask=bwd_mask, bwd_mask_video=bwd_mask_video)
     
     # Save and close video
     fwd_flow_video.close()
-    if args.backwards:
+    if fwd_mask_video:
+        fwd_mask_video.close()
+    if bwd_flow_video:
         bwd_flow_video.close()
+    if bwd_mask_video:
+        bwd_mask_video.close()
 
     # Save max disatances per frame as a CSV file
     csv_dist = open( output_basename +'.csv' , 'w')
@@ -142,17 +156,30 @@ def process_video(args):
                 "url": BAND + "_bwd.mp4",
             }
 
+        if args.output_mask != '':
+            data["bands"][BAND + "_mask"] = { 
+                "url": BAND + "_mask.mp4",
+            }
+
+            if args.backwards:
+                data["bands"][BAND + "_mask_bwd"] = { 
+                    "url": BAND + "_mask_bwd.mp4",
+                }
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input", type=str, required=True)
+
     parser.add_argument('--output', '-o', help="output", type=str, default="")
-    parser.add_argument('--model', '-m', help="model path", type=str, default=MODEL)
-    parser.add_argument('--iterations', help="number of iterations", type=int, default=ITERATIONS)
-    parser.add_argument('--subpath', '-f', help="path to flo files", type=str, default='')
-    parser.add_argument('--ds_subpath', '-d', help="path to flo files", type=str, default='')
-    parser.add_argument('--vis_subpath', '-v', help="path to flo files", type=str, default='')
+    parser.add_argument('--subpath', help="path to flo files", type=str, default="")
     parser.add_argument('--backwards','-b',  help="Backward video", action='store_true')
+    parser.add_argument('--mask', action='store_true', help="Compute mask as well")
+    parser.add_argument('--output_mask', help="output dense", type=str, default="")
+    parser.add_argument('--subpath_mask', help="path to flo files", type=str, default="")
+
+    parser.add_argument('--iterations', help="number of iterations", type=int, default=ITERATIONS)
+    parser.add_argument('--model', '-m', help="model path", type=str, default=MODEL)
 
     parser.add_argument('--scale', type=float, default=0.75)
     parser.add_argument('--raft_model', default='models/raft-things.pth', help="[RAFT] restore checkpoint")
@@ -169,6 +196,8 @@ if __name__ == '__main__':
         print("PRISMA metadata found and loaded")
         args.input = get_url(args.input, data, "rgba")
         args.output = get_target(args.input, data, band=BAND, target=args.output)
+        if args.mask:
+            args.output_mask = get_target(args.input, data, band=(BAND + "_mask"))
 
     # Check if the output folder exists
     check_overwrite(args.output)
@@ -181,17 +210,11 @@ if __name__ == '__main__':
         if args.backwards:
             os.makedirs(args.subpath + "_bwd", exist_ok=True)
 
-    if args.ds_subpath != '':
-        args.ds_subpath = os.path.join(input_folder, args.ds_subpath)
-        os.makedirs(args.ds_subpath + "_fwd", exist_ok=True)
+    if args.subpath_mask != '':
+        args.subpath_mask = os.path.join(input_folder, args.subpath_mask)
+        os.makedirs(args.subpath_mask + "_fwd", exist_ok=True)
         if args.backwards:
-            os.makedirs(args.ds_subpath + "_bwd", exist_ok=True)
-
-    if args.vis_subpath != '':
-        args.vis_subpath = os.path.join(input_folder, args.vis_subpath)
-        os.makedirs(args.vis_subpath + "_fwd", exist_ok=True)
-        if args.backwards:
-            os.makedirs(args.vis_subpath + "_bwd", exist_ok=True)
+            os.makedirs(args.subpath_mask + "_bwd", exist_ok=True)
 
     # init model
     init_model(args)
