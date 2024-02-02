@@ -79,6 +79,7 @@ if __name__ == '__main__':
     parser.add_argument('--flow', '-f', help='Flow bands', type=str, default=None, choices=FLOW_OPTIONS)
     parser.add_argument('--flo', help='Save flo files for raft', action='store_true')
     parser.add_argument('--flow_backwards', '-b',  help="Save backwards video", action='store_true')
+    parser.add_argument('--flow_mask', '-m',  help="Save mask of videos", action='store_true')
 
 
     args = parser.parse_args()
@@ -202,6 +203,9 @@ if __name__ == '__main__':
         if args.flow_backwards:
             flow_args += "--backwards "
 
+        if args.flow_mask:
+            flow_args += "--mask "
+
         if args.flow == "all":
             for band in FLOW_BANDS:
                 run(band, folder_name, subpath=args.flo, extra_args=flow_args)
@@ -211,8 +215,14 @@ if __name__ == '__main__':
         # Add a default flow band
         if args.flow == "all":
             set_default_band(folder_name, "flow", FLOW_DEFAULT)
+            set_default_band(folder_name, "flow_bwd", FLOW_DEFAULT + "_bwd")
+            set_default_band(folder_name, "flow_mask", FLOW_DEFAULT + "_mask")
+            set_default_band(folder_name, "flow_mask_bwd", FLOW_DEFAULT + "_mask_bwd")
         else:
             set_default_band(folder_name, "flow", args.flow)
+            set_default_band(folder_name, "flow_bwd", args.flow + "_bwd")
+            set_default_band(folder_name, "flow_mask", args.flow + "_mask")
+            set_default_band(folder_name, "flow_mask_bwd", args.flow + "_mask_bwd")
 
         # 5.d EXTRACT camera
         run("camera_colmap", folder_name, subpath=True)

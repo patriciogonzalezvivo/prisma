@@ -84,7 +84,7 @@ def write_flow(args,
         bwd_mask_video.write(mask_rgb)
         
     if args.backwards and bwd_flow_video:
-        bwd_flow_pixels, _, _ = process_flow(bwd_flow)
+        bwd_flow_pixels, _ = process_flow(bwd_flow)
         bwd_flow_video.write(bwd_flow_pixels)
 
     if args.subpath != '':

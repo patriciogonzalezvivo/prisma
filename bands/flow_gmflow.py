@@ -85,7 +85,7 @@ def infer(args, image1, image2):
                             attn_splits_list=args.attn_splits_list,
                             corr_radius_list=args.corr_radius_list,
                             prop_radius_list=args.prop_radius_list,
-                            pred_bidir_flow=args.backwards,
+                            pred_bidir_flow=args.output_mask != '' or args.subpath_mask != '' or args.backwards,
                         )
     
     flow_pr = results_dict['flow_preds'][-1]  # [B, 2, H, W]
@@ -203,10 +203,19 @@ def process_video(args):
             }
         }
 
+        if args.subpath != '':
+            data["bands"][BAND]["folder"] = args.subpath
+
         if args.backwards:
-            data["bands"][BAND + "_bwd"] = { 
-                "url": BAND + "_bwd.mp4",
-            }
+            data["bands"][BAND + "_bwd"] = { "url": BAND + "_bwd.mp4", }
+            if args.subpath != '':
+                data["bands"][BAND + "_bwd"]["folder"] = args.subpath + "_bwd"
+
+        if args.output_mask != '':
+            data["bands"][BAND + "_mask"] = { "url": BAND + "_mask.mp4", }
+
+            if args.backwards:
+                data["bands"][BAND + "_mask_bwd"] = { "url": BAND + "_mask_bwd.mp4", }
 
 
 if __name__ == '__main__':

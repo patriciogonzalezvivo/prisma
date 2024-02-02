@@ -151,20 +151,19 @@ def process_video(args):
             }
         }
 
+        if args.subpath != '':
+            data["bands"][BAND]["folder"] = args.subpath
+
         if args.backwards:
-            data["bands"][BAND + "_bwd"] = { 
-                "url": BAND + "_bwd.mp4",
-            }
+            data["bands"][BAND + "_bwd"] = { "url": BAND + "_bwd.mp4", }
+            if args.subpath != '':
+                data["bands"][BAND + "_bwd"]["folder"] = args.subpath + "_bwd"
 
         if args.output_mask != '':
-            data["bands"][BAND + "_mask"] = { 
-                "url": BAND + "_mask.mp4",
-            }
+            data["bands"][BAND + "_mask"] = { "url": BAND + "_mask.mp4", }
 
             if args.backwards:
-                data["bands"][BAND + "_mask_bwd"] = { 
-                    "url": BAND + "_mask_bwd.mp4",
-                }
+                data["bands"][BAND + "_mask_bwd"] = { "url": BAND + "_mask_bwd.mp4", }
 
 
 if __name__ == '__main__':
