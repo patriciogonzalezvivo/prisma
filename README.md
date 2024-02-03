@@ -235,13 +235,6 @@ python concat.py -i data/gog -o test.png
 
 ![test](https://github.com/patriciogonzalezvivo/prisma/assets/346914/763d3ada-736c-4676-ad4f-55eafe9dcf40)
 
-
-## Roadmap
-
-[ ] Suport from Record3D RGB-D format
-
-[ ] Find a proper way to extract Field of View, and centers from single images. Like EXIF in images or through a model.
-
 ## Licenses and Credits
 
 This pipeline is Copyright (c) 2024, Patricio Gonzalez Vivo and Licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) please reach out to patriciogonzalezvivo at gmail dot com, for getting a comercial license.

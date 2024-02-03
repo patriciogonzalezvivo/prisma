@@ -9,7 +9,7 @@ import numpy as np
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
-from bands.common.meta import create_metadata, is_video, add_band, write_metadata, set_default_band
+from bands.common.meta import create_metadata, is_video, add_band, write_metadata, set_default_band, get_media_info, get_record3d_data
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -64,6 +64,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', '-i', help="input file", type=str, required=True)
     parser.add_argument('--output', help="folder name", type=str, default='')
+    parser.add_argument('--record3d', help="Record3D video", action='store_true')
 
     # global video properties
     parser.add_argument('--fps', '-r', help='fix framerate', type=float, default=24)
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     input_filename = os.path.basename(input_path)
     input_basename = input_filename.rsplit( ".", 1 )[ 0 ]
     input_extension = input_filename.rsplit( ".", 1 )[ 1 ]
-
+        
     # 2. Create folder
     folder_name = os.path.join(input_folder, input_basename)
     if args.output:
@@ -105,18 +106,38 @@ if __name__ == '__main__':
 
     name_rgba = "rgba." + extension
     path_rgba = os.path.join(folder_name, name_rgba)
+    extra_rgba_args = ""
+    # 
+    if args.record3d:
+        args.rgbd = "right"
+
+        if is_video(input_path):
+            _,  height, _, _ = get_video_data(args.input)
+        else:
+            _, height = get_image_size(args.input)
+
+        camera = get_record3d_data(args.input)["intrinsicMatrix"]
+        fx = camera[0]
+        fy = camera[4]
+        cx = camera[6]
+        cy = camera[7]
+        
+        data["focal_length"] = max(fx, fy)
+        data["principal_point"] = [cx, cy]
+        data["field_of_view"] = 2 * np.arctan(0.5 * height / data["focal_length"]) * 180 / np.pi
+
+        extra_rgba_args += "--encoding_depth hue "
     
     # 3. Extract RGBA (only if doesn't exist)
     add_band(data, "rgba", url=name_rgba)
 
-    extra_args = ""
     if args.rgbd:
-        extra_args += "--rgbd " + args.rgbd
+        extra_rgba_args += "--rgbd " + args.rgbd
 
     if is_video(input_path):
-        extra_args += " --fps " + str(args.fps)
+        extra_rgba_args += " --fps " + str(args.fps)
 
-    run("rgba", input_path, path_rgba, subpath=True, extra_args=extra_args)
+    run("rgba", input_path, path_rgba, subpath=True, extra_args=extra_rgba_args)
 
     # 4. Add metadata
     if is_video(input_path):

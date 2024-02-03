@@ -33,7 +33,7 @@ def heat_to_rgb(heat):
     return hue_to_rgb( (1.0-heat) * 0.65 )
 
 
-def rgb2hsv(rgb):
+def rgb_to_hsv(rgb):
     """ convert RGB to HSV color space
 
     :param rgb: np.ndarray
@@ -60,7 +60,7 @@ def rgb2hsv(rgb):
 
 def rgb_to_heat(rgb):
     """Convert RGB to heat."""
-    hue = rgb2hsv(rgb)[...,0] / 360.0
+    hue = rgb_to_hsv(rgb)[...,0] / 360.0
     return np.clip(1.0 - hue * 1.538461538, 0.0, 1.0);
 
 

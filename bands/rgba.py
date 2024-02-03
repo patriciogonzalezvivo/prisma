@@ -13,8 +13,9 @@ from tqdm import tqdm
 
 import numpy as np
 
-from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
 from common.io import open_float_rgb, check_overwrite, write_rgb, VideoWriter
+from common.meta import load_metadata, get_target, write_metadata, is_video, get_url
+from common.encode import rgb_to_hsv, heat_to_rgb
 
 BAND = "rgba"
 
@@ -56,6 +57,10 @@ def split(in_video, output_rgb_file, output_depth_file, split, fps=24, subpath_r
         curr_frame = in_video[i].asnumpy()
         curr_frame_rgb = curr_frame[int(rgb_crop[1]):int(rgb_crop[1]+rgb_crop[3]), int(rgb_crop[0]):int(rgb_crop[0]+rgb_crop[2]), :]
         curr_frame_depth = curr_frame[int(depth_crop[1]):int(depth_crop[1]+depth_crop[3]), int(depth_crop[0]):int(depth_crop[0]+depth_crop[2]), :]
+
+        if args.encoding_depth == "hue":
+            curr_frame_depth = np.clip( rgb_to_hsv(curr_frame_depth)[...,0] / 360.0, 0.0, 1.0)
+            curr_frame_depth = heat_to_rgb(curr_frame_depth) * 255.0
 
         if subpath_rgb:
             write_rgb(os.path.join(subpath_rgb, str(i).zfill(6) + ".png"), 255.0 - np.clip(curr_frame_rgb, 0.0, 255.0))
@@ -114,12 +119,12 @@ def process_video(args):
 
     in_video = decord.VideoReader(args.input)
 
-    if args.depth == "none":
+    if args.rgbd == "none":
         os.system("cp " + args.input + " " + args.tmp)
         prune(args.tmp, args.output, args.fps, args.subpath)
 
     else:
-        split(in_video, output_rgb_file=args.output, output_depth_file=args.output_depth, fps=fps, split=args.depth, subpath_rgb=args.subpath)
+        split(in_video, output_rgb_file=args.output, output_depth_file=args.output_depth, fps=fps, split=args.rgbd, subpath_rgb=args.subpath)
         
 
 
@@ -134,7 +139,8 @@ if __name__ == '__main__':
     parser.add_argument('--subpath', help="subpath to frames", type=str, default=None)
     
     # Depth
-    parser.add_argument('--depth', help='Where the depth is', choices=["none", "left", "right", "top", "bottom"], default='none')
+    parser.add_argument('--rgbd', help='Where the depth is', choices=["none", "left", "right", "top", "bottom"], default='none')
+    parser.add_argument('--encoding_depth', help="encoding for depth", choices=["none", "hue"], default="none")
     parser.add_argument('--output_depth', help="output file for depth", type=str, default="depth")
     parser.add_argument('--subpath_depth', help="subpath to frames for depth", type=str, default=None)
 
@@ -147,7 +153,7 @@ if __name__ == '__main__':
         print("PRISMA metadata found and loaded")
         args.tmp = get_url(args.input, data, "rgba")
         args.output = get_target(args.input, data, band=BAND, target=args.output, force_extension='png')
-        if args.depth:
+        if args.rgbd:
             args.output_depth = get_target(args.input, data, band='depth', target=args.output_depth)
     else:
         input_folder = os.path.dirname(args.input)
@@ -168,7 +174,7 @@ if __name__ == '__main__':
 
     # Check if the output folder exists
     check_overwrite(args.output)
-    if args.depth:
+    if args.rgbd:
         check_overwrite(args.output_depth)
 
     if is_video(args.input):

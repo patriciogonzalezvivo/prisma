@@ -7,9 +7,9 @@
 
 import os
 import json
-from .io import check_overwrite
 
 META_FILE = "metadata.json"
+
 
 def get_metadata_path(path):
     """Get the path for the metadata file for a given path."""
@@ -133,6 +133,7 @@ def write_metadata(path, metadata):
         with open( metadata_path, 'w') as metadata_file:
             metadata_file.write( json.dumps(metadata, indent=4) )
 
+
 def set_default_band(path, band, band_default):
     """Set the default band for a given path and band."""
     data = load_metadata(path)
@@ -142,3 +143,14 @@ def set_default_band(path, band, band_default):
             if band_default in data["bands"]:
                 data["bands"][band] = data["bands"][band_default]
                 write_metadata(path, data)
+
+
+def get_media_info(path):
+    """Get the media info for a given path."""
+    from pymediainfo import MediaInfo
+    media_info = MediaInfo.parse(path)
+    return json.loads(media_info.to_json())
+
+def get_record3d_data(path):
+    info = get_media_info(path)
+    return json.loads(info["tracks"][0]["movie_more"])
