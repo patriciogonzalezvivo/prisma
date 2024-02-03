@@ -34,5 +34,5 @@ dependencies:
     - snowy==0.0.9
     - timm==0.6.12
     - tqdm==4.64.1
-    - terminaltables=3.1.10
+    - terminaltables==3.1.10
     - transformers==4.36.2
