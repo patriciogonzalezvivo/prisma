@@ -9,7 +9,7 @@ import numpy as np
 import argparse
 
 from bands.common.io import get_image_size, get_video_data
-from bands.common.meta import create_metadata, is_video, add_band, write_metadata, set_default_band, get_media_info, get_record3d_data
+from bands.common.meta import create_metadata, is_video, add_band, write_metadata, set_default_band, get_record3d_data, load_metadata
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -110,23 +110,41 @@ if __name__ == '__main__':
     # 
     if args.record3d:
         args.rgbd = "right"
+        name_depth = "depth." + extension
 
         if is_video(input_path):
             _,  height, _, _ = get_video_data(args.input)
         else:
             _, height = get_image_size(args.input)
 
-        camera = get_record3d_data(args.input)["intrinsicMatrix"]
+        record3d_info = get_record3d_data(args.input)
+        print(record3d_info)
+
+        camera = record3d_info["intrinsicMatrix"]
         fx = camera[0]
         fy = camera[4]
         cx = camera[6]
         cy = camera[7]
+
+        depth_range = record3d_info["rangeOfEncodedDepth"]
         
         data["focal_length"] = max(fx, fy)
         data["principal_point"] = [cx, cy]
         data["field_of_view"] = 2 * np.arctan(0.5 * height / data["focal_length"]) * 180 / np.pi
 
         extra_rgba_args += "--encoding_depth hue "
+
+        add_band(data, "depth", url=name_depth)
+        data["bands"]["depth"]["values"] = {
+                "min": {
+                    "type": "float",
+                    "value": depth_range[0]
+                },
+                "max": {
+                    "type": "float",
+                    "value": depth_range[1]
+                }
+            }
     
     # 3. Extract RGBA (only if doesn't exist)
     add_band(data, "rgba", url=name_rgba)
@@ -137,7 +155,9 @@ if __name__ == '__main__':
     if is_video(input_path):
         extra_rgba_args += " --fps " + str(args.fps)
 
+    write_metadata(folder_name, data)
     run("rgba", input_path, path_rgba, subpath=True, extra_args=extra_rgba_args)
+    data = load_metadata(folder_name)
 
     # 4. Add metadata
     if is_video(input_path):
@@ -148,7 +168,6 @@ if __name__ == '__main__':
         data["width"], data["height"] = get_image_size(path_rgba)
 
     # Attempt to reconstruct camera intrinsics 
-    # TODO: Use model for single images or COLMAP 
     if "principal_point" not in data:
         data["principal_point"] = [float(data["width"] / 2), float(data["height"] / 2)]
     if "focal_length" not in data:
@@ -206,13 +225,15 @@ if __name__ == '__main__':
 
         run(args.depth, folder_name, subpath=args.extra, extra_args=extra_args)
 
-    if args.depth == "all":
-        if is_video(input_path):
-            set_default_band(folder_name, "depth", DEPTH_VIDEO_DEFAULT)
+    # Add a default depth band
+    if args.rgbd is None:
+        if args.depth == "all":
+            if is_video(input_path):
+                set_default_band(folder_name, "depth", DEPTH_VIDEO_DEFAULT)
+            else:
+                set_default_band(folder_name, "depth", DEPTH_IMAGE_DEFAULT)
         else:
-            set_default_band(folder_name, "depth", DEPTH_IMAGE_DEFAULT)
-    else:
-        set_default_band(folder_name, "depth", args.depth)
+            set_default_band(folder_name, "depth", args.depth)
     
     if is_video(input_path):
 
