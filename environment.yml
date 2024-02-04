@@ -27,6 +27,7 @@ dependencies:
     - diffusers==0.24.0
     - pymediainfo==6.1.0
     - kornia==0.7.0
+    - onnx==1.13.0
     - opencv-contrib-python==4.8.1.78
     - opencv-python==4.8.1.78
     - pyyaml==6.0.1

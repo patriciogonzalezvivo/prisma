@@ -108,7 +108,6 @@ def infer(img, normalize=False):
 
         img_pil = Image.fromarray(img)
         img_size = img_pil.size
-        print(img_size)
 
         image = transforms.ToTensor()(img_pil).unsqueeze(0).to(device)
         pred_dict = model(image, dataset=dataset)

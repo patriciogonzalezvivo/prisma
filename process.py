@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Default BANDS & MODELS
-DEPTH_VIDEO_DEFAULT = "depth_zoedepth"
+DEPTH_VIDEO_DEFAULT = "depth_anything"
 DEPTH_IMAGE_DEFAULT = "depth_patchfusion"
 DEPTH_BANDS = ["depth_midas", "depth_marigold", "depth_zoedepth", "depth_patchfusion", "depth_anything"]
 DEPTH_OPTIONS = DEPTH_BANDS + ["all"]
@@ -40,6 +40,19 @@ SUBFOLDERS = {
     "depth_patchfusion": "depth_patchfusion",
     "depth_anything": "depth_anything",
     "camera_colmap": "sparse"
+}
+
+# Extra args
+EXTRA_ARGS = {
+    "rgba": "",
+    "mask_mmdet": "--sdf ",
+    "depth_midas": " ",
+    "depth_marigold": "",
+    "depth_zoedepth": "",
+    "depth_patchfusion": "",
+    "depth_anything": "--metric outdoor ",
+    "flow_raft": "",
+    "flow_gmflow": ""
 }
 
 
@@ -106,7 +119,7 @@ if __name__ == '__main__':
 
     name_rgba = "rgba." + extension
     path_rgba = os.path.join(folder_name, name_rgba)
-    extra_rgba_args = ""
+    extra_rgba_args = EXTRA_ARGS["rgba"]
     # 
     if args.record3d:
         args.rgbd = "right"
@@ -181,8 +194,6 @@ if __name__ == '__main__':
     # 
 
     # Set some global properties
-    global_args = ""
-
     if args.extra > 0:
         args.ply = True
 
@@ -193,7 +204,7 @@ if __name__ == '__main__':
         args.npy = True
 
     # 5.a EXTRACT MASK (mmdet)
-    run("mask_mmdet", folder_name, subpath=True, extra_args="--sdf")
+    run("mask_mmdet", folder_name, subpath=True, extra_args=EXTRA_ARGS["mask_mmdet"])
 
     # 5.b EXTRACT DEPTH
     depth_args = ""
@@ -214,12 +225,15 @@ if __name__ == '__main__':
     if args.depth == "all":
         for band in DEPTH_BANDS:
             extra_args = depth_args
+            if band in EXTRA_ARGS:
+                extra_args += EXTRA_ARGS[band]
             if band == "depth_patchfusion" and is_video(input_path):
                 extra_args += "--mode=p49 "
             run(band, folder_name, subpath=args.extra, extra_args=extra_args)
     else:
         extra_args = depth_args
-
+        if args.depth in EXTRA_ARGS:
+                extra_args += EXTRA_ARGS[args.depth]
         if args.depth == "depth_patchfusion" and is_video(input_path):
             extra_args += "--mode=p49 "
 
@@ -250,9 +264,15 @@ if __name__ == '__main__':
 
         if args.flow == "all":
             for band in FLOW_BANDS:
-                run(band, folder_name, subpath=args.flo, extra_args=flow_args)
+                extra_args = flow_args
+                if band in EXTRA_ARGS:
+                    extra_args += EXTRA_ARGS[band]
+                run(band, folder_name, subpath=args.flo, extra_args=extra_args)
         else:
-            run(args.flow, folder_name, subpath=args.flo, extra_args=flow_args)
+            extra_args = flow_args
+            if args.flow in EXTRA_ARGS:
+                extra_args += EXTRA_ARGS[args.flow]
+            run(args.flow, folder_name, subpath=args.flo, extra_args=extra_args)
 
         # Add a default flow band
         if args.flow == "all":
