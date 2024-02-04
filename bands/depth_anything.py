@@ -115,9 +115,9 @@ def infer(img, normalize=False):
         depth = get_depth_from_prediction(pred_dict).squeeze().detach()
         prediction = depth.cpu().numpy()
 
-        # pred_img = Image.fromarray(prediction)
-        # pred_img = pred_img.resize(img_size)
-        # prediction = np.asarray(pred_img)
+        pred_img = Image.fromarray(prediction)
+        pred_img = pred_img.resize(img_size)
+        prediction = np.asarray(pred_img)
 
     else:
         image = img / 255.0
