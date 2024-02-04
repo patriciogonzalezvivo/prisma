@@ -458,6 +458,87 @@ KEYS_TYPE_BOOL = ["use_amp", "distributed", "use_shared_dict", "same_lr", "aug",
                   "prefetch", "cycle_momentum"]  # Casting is not necessary as their int casted values in config are 0 or 1
 
 
+def get_org_config(model_name, mode='train', dataset=None, **overwrite_kwargs):
+    """Main entry point to get the config for the model.
+
+    Args:
+        model_name (str): name of the desired model.
+        mode (str, optional): "train" or "infer". Defaults to 'train'.
+        dataset (str, optional): If specified, the corresponding dataset configuration is loaded as well. Defaults to None.
+    
+    Keyword Args: key-value pairs of arguments to overwrite the default config.
+
+    The order of precedence for overwriting the config is (Higher precedence first):
+        # 1. overwrite_kwargs
+        # 2. "config_version": Config file version if specified in overwrite_kwargs. The corresponding config loaded is config_{model_name}_{config_version}.json
+        # 3. "version_name": Default Model version specific config specified in overwrite_kwargs. The corresponding config loaded is config_{model_name}_{version_name}.json
+        # 4. common_config: Default config for all models specified in COMMON_CONFIG
+
+    Returns:
+        easydict: The config dictionary for the model.
+    """
+
+
+    check_choices("Model", model_name, ["zoedepth", "zoedepth_nk"])
+    check_choices("Mode", mode, ["train", "infer", "eval"])
+    if mode == "train":
+        check_choices("Dataset", dataset, ["nyu", "kitti", "mix", None])
+
+    config = flatten({**COMMON_CONFIG, **COMMON_TRAINING_CONFIG})
+    config = update_model_config(config, mode, model_name)
+
+    # update with model version specific config
+    version_name = overwrite_kwargs.get("version_name", config["version_name"])
+    config = update_model_config(config, mode, model_name, version_name)
+
+    # update with config version if specified
+    config_version = overwrite_kwargs.get("config_version", None)
+    if config_version is not None:
+        print("Overwriting config with config_version", config_version)
+        config = update_model_config(config, mode, model_name, config_version)
+
+    # update with overwrite_kwargs
+    # Combined args are useful for hyperparameter search
+    overwrite_kwargs = split_combined_args(overwrite_kwargs)
+    config = {**config, **overwrite_kwargs}
+
+    # Casting to bool   # TODO: Not necessary. Remove and test
+    for key in KEYS_TYPE_BOOL:
+        if key in config:
+            config[key] = bool(config[key])
+
+    # Model specific post processing of config
+    parse_list(config, "n_attractors")
+
+    # adjust n_bins for each bin configuration if bin_conf is given and n_bins is passed in overwrite_kwargs
+    if 'bin_conf' in config and 'n_bins' in overwrite_kwargs:
+        bin_conf = config['bin_conf']  # list of dicts
+        n_bins = overwrite_kwargs['n_bins']
+        new_bin_conf = []
+        for conf in bin_conf:
+            conf['n_bins'] = n_bins
+            new_bin_conf.append(conf)
+        config['bin_conf'] = new_bin_conf
+
+    if mode == "train":
+        orig_dataset = dataset
+        if dataset == "mix":
+            dataset = 'nyu'  # Use nyu as default for mix. Dataset config is changed accordingly while loading the dataloader
+        if dataset is not None:
+            config['project'] = f"MonoDepth3-{orig_dataset}"  # Set project for wandb
+
+    if dataset is not None:
+        config['dataset'] = dataset
+        config = {**DATASETS_CONFIG[dataset], **config}
+        
+
+    config['model'] = model_name
+    typed_config = {k: infer_type(v) for k, v in config.items()}
+    # add hostname to config
+    config['hostname'] = platform.node()
+    return edict(typed_config)
+
+
 def get_config(model_name, mode='train', dataset=None, model_cfg_path=None, **overwrite_kwargs):
     """Main entry point to get the config for the model.
 
