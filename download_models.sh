@@ -14,4 +14,10 @@ wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/sol
 wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/solov2/solov2_r50_fpn_3x_coco.py
 wget https://raw.githubusercontent.com/open-mmlab/mmdetection/master/configs/solov2/solov2_r50_fpn_1x_coco.py
 
+# DepthAnything
+
+wget https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints_metric_depth/depth_anything_metric_depth_indoor.pt?download=true
+wget https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints_metric_depth/depth_anything_metric_depth_outdoor.pt?download=true
+wget https://huggingface.co/spaces/LiheYoung/Depth-Anything/resolve/main/checkpoints/depth_anything_vitl14.pth?download=true
+
 cd ..
